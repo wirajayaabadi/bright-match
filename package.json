@@ -1,0 +1,39 @@
+{
+  "name": "bright-match",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "db:schema": "scripts/db.sh schema",
+    "db:seed": "scripts/db.sh seed",
+    "db:setup": "scripts/db.sh setup",
+    "db:check": "scripts/db.sh check",
+    "db:lingkungan": "scripts/db.sh lingkungan",
+    "data:overture": "python3 scripts/eksternal/unduh_overture.py",
+    "data:lingkungan": "python3 scripts/eksternal/fitur_lingkungan.py",
+    "data:peta": "python3 scripts/eksternal/peta_tempat.py"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.119.0",
+    "leaflet": "^1.9.4",
+    "next": "16.4.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/turbopack": "^4",
+    "@types/leaflet": "1.9",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.4",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
