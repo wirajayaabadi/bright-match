@@ -48,16 +48,17 @@ dengan file master kontrak.
 | `npm run db:seed` | Mengekspor data ke `supabase/seed/*.csv`, lalu mengganti seluruh isi tabel. |
 | `npm run db:setup` | `db:schema` lalu `db:seed`. |
 | `npm run db:lingkungan` | Memuat ulang data lingkungan dan titik peta dari `supabase/lingkungan/`. `db:seed` menjalankannya otomatis. |
+| `npm run db:gambar` | Memuat ulang daftar foto dari `supabase/gambar/gambar.csv.gz`. `db:seed` menjalankannya otomatis. |
 | `npm run db:check` | Menampilkan ringkasan isi basis data. |
 
 Semua perintah aman diulang. Butuh `psql` dan `python3`. Bila sumber data ada di tempat lain:
 `SEED_SOURCE=/jalur/ke/eksplorasi npm run db:seed`.
 
-Angka yang seharusnya muncul setelah muat (scraping 3 November 2026):
+Angka yang seharusnya muncul setelah muat (halaman Brightspace 14 November 2026):
 
 | SPBU | Lahan | Lahan kosong | Okupansi | Kosong bertarif | Potensi sewa bertarif |
 | --- | --- | --- | --- | --- | --- |
-| 6.627 | 31.861 | 5.574 | 82,5% | 3.693 | Rp 106.336.314.752 |
+| 6.627 | 33.990 | 5.917 | 82,6% | 3.902 | Rp 113.189.677.374 |
 
 `supabase/seed/` memuat nama tenant dan nilai kontrak, jadi tidak ikut di-commit.
 
@@ -93,8 +94,9 @@ Catatan data:
   baris kedua ditandai `duplikat = true`. Daftar lahan untuk pengguna sebaiknya memakai
   `where not duplikat`.
 - Nama tenant di file master ditulis tidak seragam. Kolom `lahan.tenant_kunci` menyamakan huruf besar-kecil dan
-  tanda baca, sehingga 3.645 nama menjadi 3.515 tenant. Ejaan yang benar-benar berbeda belum digabung.
-- 3 SPBU tidak punya kota dan 396 SPBU berprovinsi "Tidak diketahui". Semuanya tanpa lahan.
+  tanda baca, sehingga 3.793 nama menjadi 3.654 tenant. Ejaan yang benar-benar berbeda belum digabung.
+- 3 SPBU tidak punya kota dan semuanya tanpa lahan. Pada data 3 November ada 396 SPBU berprovinsi "Tidak diketahui"
+  karena server sumber mengirim halaman kosong; sejak data 14 November tidak ada lagi.
 - 422 SPBU belum punya koordinat. Ini perlu dilengkapi sebelum data eksternal ditempelkan.
 
 ### Keamanan data
@@ -119,12 +121,15 @@ src/lib/tipe-lokasi.ts nama dan arti tiap tipe lokasi
 src/lib/playbook.ts    isi naratif Playbook (segmen pelanggan, alur kunjungan, bukti survei)
 src/lib/data-tahap3.ts kueri calon tenant, pipeline, dan kartu penawaran
 src/lib/istilah.ts     pilihan dan label: jenis usaha, kanal, tahap, provinsi
+src/lib/gambar.ts      alamat foto di object storage; src/lib/data-gambar.ts kuerinya
+src/components/galeri.tsx  thumbnail foto dan penampil layar penuh
 src/app/aksi.ts        semua penulisan data (server action)
 src/app/daftar/        formulir publik "Jadi Bright Partner" dan halaman hasilnya (tanpa login)
 src/lib/modules.ts     daftar tujuh modul dan statusnya
 src/lib/supabase/      klien Supabase untuk server dan proxy
 supabase/migrations/   skema basis data
 supabase/lingkungan/   data lingkungan hasil olahan (ikut di-commit; bukan data kontrak)
+supabase/gambar/       daftar foto Brightspace (ikut di-commit; berkas fotonya ada di object storage)
 scripts/               ekspor data dan pembungkus psql
 scripts/eksternal/     unduh data terbuka dan hitung fitur lingkungan
 data/eksternal/        unduhan mentah (tidak di-commit)
@@ -167,8 +172,8 @@ npm run db:lingkungan     # muat ke basis data
 
 Butuh `pyarrow`, `numpy`, dan `Pillow`.
 
-**Cakupan.** 6.171 dari 6.627 SPBU mendapat data lingkungan, mencakup 5.555 dari 5.574 lahan kosong. Yang tidak
-tercakup: 427 SPBU tanpa koordinat lengkap, 4 SPBU dengan koordinat di luar Indonesia, dan 25 SPBU yang koordinatnya
+**Cakupan.** 6.565 dari 6.627 SPBU mendapat data lingkungan, mencakup 5.898 dari 5.917 lahan kosong. Yang tidak
+tercakup: 32 SPBU tanpa koordinat lengkap, 4 SPBU dengan koordinat di luar Indonesia, dan 26 SPBU yang koordinatnya
 lebih dari 150 km dari SPBU sekotanya.
 
 **Tipe lokasi.** Sembilan tipe: kampus, perkantoran, komersial, wisata, industri, pusat kota, perumahan, luar kota,
@@ -186,8 +191,8 @@ penduduk, bukan dari kelas jalan.
 
 ### Peta sekitar SPBU
 
-Halaman Profil lokasi menampilkan peta semua tempat Overture dalam 1 km dari SPBU: 1,06 juta tempat untuk
-6.171 SPBU, paling banyak 2.671 di satu SPBU. SPBU tanpa koordinat yang layak tidak punya peta.
+Halaman Profil lokasi menampilkan peta semua tempat Overture dalam 1 km dari SPBU: 1,12 juta tempat untuk
+6.565 SPBU, paling banyak 2.671 di satu SPBU. SPBU tanpa koordinat yang layak tidak punya peta.
 
 - **Data.** `scripts/eksternal/peta_tempat.py` memakai SPBU dan saringan yang sama dengan `fitur_lingkungan.py`,
   lalu menulis satu baris per SPBU. Tiap tempat disimpan sebagai `[dx, dy, kelompok, nama]`, dengan `dx` dan `dy`
@@ -199,6 +204,38 @@ Halaman Profil lokasi menampilkan peta semua tempat Overture dalam 1 km dari SPB
   ringan; untuk pemakaian luas, isi `NEXT_PUBLIC_PETA_UBIN` dengan penyedia ubin berlangganan. Pustaka: Leaflet.
 - **Batas.** Overture adalah data terbuka: bisa tertinggal dari lapangan, dan tempat dengan keyakinan di bawah 0,5
   tidak ditampilkan. Kelompok "Lainnya" memuat kategori yang belum dipetakan, misalnya tempat ibadah dan bengkel.
+
+## Foto SPBU dan lahan
+
+Foto dari Brightspace tampil di daftar SPBU dan daftar lahan kosong (thumbnail per baris), Profil lokasi (foto SPBU
+beserta waktu unggahnya, dan thumbnail tiap lahan kosong maupun tersewa), Profil tenant (foto lahan yang disewa,
+terbaru dulu, dan thumbnail di tabel kontrak), Kartu rekomendasi lahan, dan Kartu penawaran (tiga foto, ikut tercetak). Setiap thumbnail membuka penampil foto layar penuh. Yang tersedia: 69.220 tautan foto ke 46.590 berkas, untuk 33.957 dari
+33.990 lahan dan 2.881 SPBU. Sisanya memang belum punya foto di Brightspace; 102 foto tidak bisa diambil dari sumber.
+
+- **Berkas.** Disimpan di Cloudflare R2 sebagai WebP dua ukuran: `brightspace/<aa>/<sha256>.webp` (sisi terpanjang
+  1.600 px) dan `…-480.webp` (thumbnail). Nama berkas adalah hash isi aslinya, jadi tidak pernah berubah dan boleh
+  disimpan lama di cache. Diunduh dan diunggah oleh `brightspace_gambar.py` dan `unggah_r2.py` di folder induk.
+- **Basis data.** Tabel `gambar` hanya menyimpan kunci objek dan tautannya ke SPBU dan lahan (`spbu_id`, `lahan_id`),
+  ± 20 MB. Fungsi `gambar_spbu` dan `gambar_lahan` mengembalikan foto untuk satu halaman detail;
+  `gambar_daftar` mengambil foto untuk satu halaman daftar (paling banyak 100 SPBU dan 100 lahan) sekaligus;
+  `gambar_tenant` mengambil satu foto per lahan yang disewa tenant (paling banyak 60, terbaru dulu).
+- **Alamat.** Foto disajikan lewat rute aplikasi `/foto/<kunci>` (`src/app/foto/[...kunci]/route.ts`). Server
+  mengambil berkasnya dari R2 lewat jalur API dengan kredensial `R2_*`, lalu meneruskannya dengan cache satu tahun.
+  Alasannya: alamat publik `r2.dev` diblokir di sebagian jaringan Indonesia (DNS-nya diarahkan ke halaman blokir
+  Komdigi), sedangkan jalur API R2 tidak. Isi `NEXT_PUBLIC_GAMBAR_URL=/foto`. Di Vercel, isi juga keempat `R2_*`;
+  cukup dengan token "Object Read only". Bila bucket kelak dipasangi domain sendiri, isi `NEXT_PUBLIC_GAMBAR_URL`
+  dengan domain itu dan foto diambil langsung dari bucket. Bila kosong, aplikasi berjalan tanpa foto.
+- **Keterbukaan.** Daftar foto hanya bisa dibaca pengguna yang sudah masuk. Berkasnya sendiri bisa diambil siapa pun
+  yang tahu alamatnya (alamat berisi hash 64 karakter dan tidak bisa ditebak), sama seperti di server berkas
+  Brightspace. Rute `/foto` hanya melayani kunci berpola `brightspace/<aa>/<sha256>[-480].webp`.
+
+Memperbarui setelah foto diunduh ulang:
+
+```bash
+python ../unggah_r2.py    # unggah berkas yang belum ada di bucket
+npm run data:gambar       # ringkas ../out/gambar/manifest.csv → supabase/gambar/gambar.csv.gz
+npm run db:gambar         # muat ke basis data
+```
 
 ## Mesin kecocokan versi 2
 

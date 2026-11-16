@@ -168,6 +168,7 @@ export type ProfilTenant = {
   kota: { kota: string | null; provinsi: string; lahan: number }[];
   kontrak: {
     kode: string;
+    lahan_id: string;
     spbu_id: string;
     spbu_nomor: string;
     kota: string | null;

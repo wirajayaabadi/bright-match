@@ -3,10 +3,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { GarisMerek } from "@/components/brand";
+import Galeri from "@/components/galeri";
 import PanelGalat from "@/components/panel-galat";
 import { Jejak } from "@/components/tabel";
 import TombolCetak from "@/components/tombol-cetak";
 import { Rangka, TidakDitemukan } from "@/components/ui";
+import { getGambarLahan } from "@/lib/data-gambar";
 import { getPenawaran } from "@/lib/data-tahap3";
 import { alamat, n, rp, satu } from "@/lib/format";
 import { type Bahasa, namaJenisUsaha, UUID } from "@/lib/istilah";
@@ -49,7 +51,7 @@ const T = {
     skor: "Skor kecocokan",
     tidakLolos: "Pasangan ini tidak memenuhi salah satu syarat wajib (luas, posisi, daya, tarif, atau wilayah), jadi alasan kecocokannya tidak ditampilkan.",
     kontak: "Tim Non Fuel Retail Pertamina",
-    catatan: "Penawaran ini tidak mengikat. Ketersediaan dan tarif mengikuti data Brightspace per 3 November 2026.",
+    catatan: "Penawaran ini tidak mengikat. Ketersediaan dan tarif mengikuti data Brightspace per 14 November 2026.",
     sumber: "Data lingkungan: Overture Maps Foundation dan WorldPop (CC BY 4.0).",
     cetak: "Cetak atau simpan PDF",
     dalam: "Di dalam bangunan",
@@ -87,7 +89,7 @@ const T = {
     skor: "Match score",
     tidakLolos: "This pair does not meet one of the mandatory requirements (area, position, power, rent or region), so no match reasons are shown.",
     kontak: "Pertamina Non Fuel Retail team",
-    catatan: "This offer is not binding. Availability and rent follow Brightspace data as of 3 November 2026.",
+    catatan: "This offer is not binding. Availability and rent follow Brightspace data as of 14 November 2026.",
     sumber: "Neighbourhood data: Overture Maps Foundation and WorldPop (CC BY 4.0).",
     cetak: "Print or save as PDF",
     dalam: "Indoor",
@@ -115,7 +117,10 @@ async function Isi({ params, searchParams }: Props) {
   const b: Bahasa = satu(sp.bahasa) === "en" ? "en" : "id";
   const calon = satu(sp.calon);
   const tenant = satu(sp.tenant);
-  const hasil = await getPenawaran(id, { tenant, calon: calon && UUID.test(calon) ? calon : undefined });
+  const [hasil, hasilFoto] = await Promise.all([
+    getPenawaran(id, { tenant, calon: calon && UUID.test(calon) ? calon : undefined }),
+    getGambarLahan(id),
+  ]);
   if (hasil.galat) return <PanelGalat galat={hasil.galat} />;
   if (!hasil.data) return <TidakDitemukan apa="Lahan kosong ini" />;
 
@@ -132,6 +137,8 @@ async function Isi({ params, searchParams }: Props) {
   const luas = (v: number | null) => (v == null ? "–" : `${angka(v)} m²`);
   const daya = (v: number | null) => (v == null ? "–" : `${angka(v)} W`);
   const { lahan: l, spbu, ringkasan, jenis_usaha_ada: usaha, lingkungan: lk, poi, pihak, nama_pihak: namaPihak } = hasil.data;
+  // Tiga foto di kartu: foto lahan dulu, lalu foto SPBU bila masih ada tempat. Sisanya bisa dibuka dari petak terakhir.
+  const foto = [...(hasilFoto.data?.lahan ?? []), ...(hasilFoto.data?.spbu ?? [])];
   const ke = (bahasa: Bahasa) => alamat(`/penawaran/${l.lahan_id}`, { bahasa: bahasa === "en" ? "en" : undefined, calon, tenant });
   const dimensi = [l.panjang_m, l.lebar_m, l.tinggi_m].every((v) => v != null)
     ? [l.panjang_m, l.lebar_m, l.tinggi_m].map((v) => (en ? String(v) : String(v).replace(".", ","))).join(" × ") + " m"
@@ -191,6 +198,12 @@ async function Isi({ params, searchParams }: Props) {
             <p className="mt-3 inline-block rounded-lg bg-brand-blue-soft px-3 py-1.5 text-sm text-brand-blue-strong">
               {t.untuk} <strong>{namaPihak}</strong>
             </p>
+          )}
+
+          {foto.length > 0 && (
+            <div className="mt-6">
+              <Galeri gambar={foto} subjek={`${l.kode}, SPBU ${spbu.nomor}`} maks={3} segera kisi="grid-cols-3" />
+            </div>
           )}
 
           <div className="mt-7 grid gap-x-10 gap-y-7 sm:grid-cols-2">

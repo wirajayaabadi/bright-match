@@ -13,6 +13,8 @@
     "db:setup": "scripts/db.sh setup",
     "db:check": "scripts/db.sh check",
     "db:lingkungan": "scripts/db.sh lingkungan",
+    "db:gambar": "scripts/db.sh gambar",
+    "data:gambar": "python3 scripts/export_gambar.py",
     "data:overture": "python3 scripts/eksternal/unduh_overture.py",
     "data:lingkungan": "python3 scripts/eksternal/fitur_lingkungan.py",
     "data:peta": "python3 scripts/eksternal/peta_tempat.py"
@@ -20,6 +22,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
+    "aws4fetch": "1.0.20",
     "leaflet": "^1.9.4",
     "next": "16.4.4",
     "react": "19.3.0",

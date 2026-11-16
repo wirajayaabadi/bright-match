@@ -7,6 +7,8 @@ import { LencanaTipe } from "@/components/lingkungan";
 import { CentangLangsung, kolomSaring, PilihLangsung, PilihWilayah } from "@/components/saring";
 import { BarisKosong, BingkaiTabel, Halaman, tautan, td, tdAngka, th, thKanan } from "@/components/tabel";
 import { JudulHalaman, Rangka } from "@/components/ui";
+import SelFoto from "@/components/sel-foto";
+import { getGambarDaftar } from "@/lib/data-gambar";
 import { getDaftarSpbu, getWilayah } from "@/lib/data-tahap1";
 import { alamat, n, rp, satu } from "@/lib/format";
 import { DAFTAR_TIPE, TIPE_LOKASI } from "@/lib/tipe-lokasi";
@@ -54,6 +56,7 @@ async function Isi({ searchParams }: Pick<Props, "searchParams">) {
   ]);
   if (daftar.galat) return <PanelGalat galat={daftar.galat} />;
   const { total, baris } = daftar.data ?? { total: 0, baris: [] };
+  const foto = await getGambarDaftar({ spbu: baris.map((b) => b.id) });
 
   return (
     <>
@@ -86,9 +89,12 @@ async function Isi({ searchParams }: Pick<Props, "searchParams">) {
         </button>
       </Form>
 
-      <BingkaiTabel lebarMin="min-w-[860px]">
+      <BingkaiTabel lebarMin="min-w-[940px]">
         <thead>
           <tr className="border-b border-line">
+            <th scope="col" className={th}>
+              Foto
+            </th>
             <th scope="col" className={th}>
               SPBU
             </th>
@@ -113,9 +119,12 @@ async function Isi({ searchParams }: Pick<Props, "searchParams">) {
           </tr>
         </thead>
         <tbody>
-          {baris.length === 0 && <BarisKosong kolom={7} pesan="Tidak ada SPBU yang sesuai saringan." />}
+          {baris.length === 0 && <BarisKosong kolom={8} pesan="Tidak ada SPBU yang sesuai saringan." />}
           {baris.map((b) => (
             <tr key={b.id} className="border-b border-line last:border-b-0 hover:bg-canvas/70">
+              <td className="px-4 py-2.5 align-top">
+                <SelFoto gambar={foto.spbu[b.id]} subjek={`SPBU ${b.nomor}`} />
+              </td>
               <th scope="row" className={`${td} text-left font-normal`}>
                 <Link href={`/lokasi/${b.id}`} className={tautan}>
                   SPBU {b.nomor}

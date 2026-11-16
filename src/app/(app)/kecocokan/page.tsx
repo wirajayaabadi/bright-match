@@ -7,6 +7,8 @@ import { kolomSaring, PilihWilayah } from "@/components/saring";
 import { CatatanVersi } from "@/components/skor";
 import { Bagian, BarisKosong, BingkaiTabel, Halaman, tautan, td, tdAngka, th, thKanan } from "@/components/tabel";
 import { JudulHalaman, Rangka } from "@/components/ui";
+import SelFoto from "@/components/sel-foto";
+import { getGambarDaftar } from "@/lib/data-gambar";
 import { getDaftarLahanKosong, getWilayah } from "@/lib/data-tahap1";
 import { alamat, daya, luas, rp, satu } from "@/lib/format";
 
@@ -83,6 +85,7 @@ async function LahanKosong({ searchParams }: Pick<Props, "searchParams">) {
   const [wilayah, daftar] = await Promise.all([getWilayah(), getDaftarLahanKosong({ ...saring, halaman })]);
   if (daftar.galat) return <PanelGalat galat={daftar.galat} />;
   const { total, baris } = daftar.data ?? { total: 0, baris: [] };
+  const foto = await getGambarDaftar({ lahan: baris.map((l) => l.lahan_id) });
 
   return (
     <>
@@ -93,6 +96,9 @@ async function LahanKosong({ searchParams }: Pick<Props, "searchParams">) {
       <BingkaiTabel>
         <thead>
           <tr className="border-b border-line">
+            <th scope="col" className={th}>
+              Foto
+            </th>
             <th scope="col" className={th}>
               Kode lahan
             </th>
@@ -117,9 +123,12 @@ async function LahanKosong({ searchParams }: Pick<Props, "searchParams">) {
           </tr>
         </thead>
         <tbody>
-          {baris.length === 0 && <BarisKosong kolom={7} pesan="Tidak ada lahan kosong di wilayah ini." />}
+          {baris.length === 0 && <BarisKosong kolom={8} pesan="Tidak ada lahan kosong di wilayah ini." />}
           {baris.map((l) => (
             <tr key={l.lahan_id} className="border-b border-line last:border-b-0 hover:bg-canvas/70">
+              <td className="px-4 py-2.5 align-top">
+                <SelFoto gambar={foto.lahan[l.lahan_id]} subjek={`lahan ${l.kode}`} />
+              </td>
               <th scope="row" className={`${td} text-left font-semibold whitespace-nowrap text-ink`}>
                 {l.kode}
               </th>

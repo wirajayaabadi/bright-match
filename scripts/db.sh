@@ -5,6 +5,7 @@
 #   npm run db:seed     ekspor data bersih ke CSV, lalu ganti seluruh isi tabel
 #   npm run db:setup    schema + seed
 #   npm run db:lingkungan  muat ulang data lingkungan (tipe lokasi) dari supabase/lingkungan/*.csv
+#   npm run db:gambar   muat ulang daftar gambar dari supabase/gambar/gambar.csv.gz
 #   npm run db:check    tampilkan ringkasan isi basis data
 #
 # Butuh: psql, python3, dan SUPABASE_DB_URL (di .env.local atau variabel lingkungan).
@@ -54,10 +55,23 @@ lingkungan() {
   sql -v ada_peta="$ada_peta" -f supabase/load_lingkungan.sql
 }
 
+gambar() {
+  if [ ! -f supabase/gambar/gambar.csv.gz ]; then
+    echo "Daftar gambar belum ada (supabase/gambar/). Buat dulu dengan: npm run data:gambar" >&2
+    return 0
+  fi
+  if [ "$(sql -Atc "select to_regclass('public.gambar') is not null")" != "t" ]; then
+    echo "Tabel gambar belum dipasang. Jalankan dulu: npm run db:schema" >&2
+    return 0
+  fi
+  sql -f supabase/load_gambar.sql
+}
+
 seed() {
   python3 scripts/export_seed.py
   sql -f supabase/load.sql
-  lingkungan   # load.sql mengosongkan tabel lingkungan, jadi dimuat kembali di sini
+  lingkungan   # load.sql mengosongkan tabel lingkungan dan gambar, jadi dimuat kembali di sini
+  gambar
 }
 
 case "${1:-}" in
@@ -65,6 +79,7 @@ case "${1:-}" in
   seed)   seed ;;
   setup)  schema; seed ;;
   lingkungan) lingkungan ;;
+  gambar) gambar ;;
   check)  sql -c "select * from public.v_ringkasan" ;;
-  *) echo "Pemakaian: scripts/db.sh schema|seed|setup|lingkungan|check" >&2; exit 1 ;;
+  *) echo "Pemakaian: scripts/db.sh schema|seed|setup|lingkungan|gambar|check" >&2; exit 1 ;;
 esac

@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import Galeri from "@/components/galeri";
 import PanelGalat from "@/components/panel-galat";
+import SelFoto from "@/components/sel-foto";
 import { Bagian, BarisKosong, BingkaiTabel, Jejak, tautan, td, tdAngka, th, thKanan } from "@/components/tabel";
 import { JudulHalaman, KartuAngka, Rangka, TidakDitemukan } from "@/components/ui";
+import { getGambarDaftar, getGambarTenant } from "@/lib/data-gambar";
 import { getProfilTenant } from "@/lib/data-tahap1";
 import { daya, luas, n, pct, rp, tanggal } from "@/lib/format";
+import { gambarSiap, rentangUnggah } from "@/lib/gambar";
 
 export const metadata: Metadata = { title: "Profil tenant" };
 
@@ -21,11 +25,14 @@ export default function HalamanTenant({ params }: Props) {
 
 async function Isi({ params }: Pick<Props, "params">) {
   const { id } = await params;
-  const hasil = await getProfilTenant(id);
+  const [hasil, hasilFoto] = await Promise.all([getProfilTenant(id), getGambarTenant(id)]);
   if (hasil.galat) return <PanelGalat galat={hasil.galat} />;
   if (!hasil.data) return <TidakDitemukan apa="Tenant ini" />;
 
   const { tenant: t, segmen, provinsi, kota, kontrak } = hasil.data;
+  // Foto bersifat pelengkap: bila gagal dimuat, profil tetap tampil tanpa foto.
+  const foto = hasilFoto.data;
+  const fotoKontrak = await getGambarDaftar({ lahan: kontrak.map((k) => k.lahan_id) });
   const totalPosisi = t.lahan_dalam + t.lahan_luar;
 
   return (
@@ -66,6 +73,19 @@ async function Isi({ params }: Pick<Props, "params">) {
           catatan={`${n(t.kontrak_lewat)} kontrak sudah lewat tanggal di file master`}
         />
       </dl>
+
+      {gambarSiap && foto && foto.outlet.length > 0 && (
+        <Bagian
+          judul="Foto lahan yang disewa"
+          keterangan={`Foto dari Brightspace, satu per lahan, yang terbaru dulu${
+            rentangUnggah(foto.outlet) ? ` (diunggah ${rentangUnggah(foto.outlet)})` : ""
+          }. ${n(foto.lahan_berfoto)} dari ${n(foto.lahan)} lahan punya foto${
+            foto.lahan_berfoto > foto.outlet.length ? `; ${n(foto.outlet.length)} terbaru ditampilkan` : ""
+          }. Pilih satu foto untuk memperbesarnya.`}
+        >
+          <Galeri gambar={foto.outlet} subjek={t.nama} maks={12} />
+        </Bagian>
+      )}
 
       <div className="grid gap-x-8 lg:grid-cols-2">
         <Bagian
@@ -159,6 +179,9 @@ async function Isi({ params }: Pick<Props, "params">) {
           <thead>
             <tr className="border-b border-line">
               <th scope="col" className={th}>
+                Foto
+              </th>
+              <th scope="col" className={th}>
                 Kode lahan
               </th>
               <th scope="col" className={th}>
@@ -179,9 +202,12 @@ async function Isi({ params }: Pick<Props, "params">) {
             </tr>
           </thead>
           <tbody>
-            {kontrak.length === 0 && <BarisKosong kolom={6} pesan="Tidak ada kontrak dengan tanggal berakhir di masa depan." />}
+            {kontrak.length === 0 && <BarisKosong kolom={7} pesan="Tidak ada kontrak dengan tanggal berakhir di masa depan." />}
             {kontrak.map((k) => (
-              <tr key={k.kode} className="border-b border-line last:border-b-0">
+              <tr key={k.lahan_id} className="border-b border-line last:border-b-0">
+                <td className="px-4 py-2.5 align-top">
+                  <SelFoto gambar={fotoKontrak.lahan[k.lahan_id]} subjek={`lahan ${k.kode}`} />
+                </td>
                 <th scope="row" className={`${td} text-left font-medium whitespace-nowrap text-ink`}>
                   {k.kode}
                 </th>

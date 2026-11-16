@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import Galeri from "@/components/galeri";
 import { PanelLingkungan } from "@/components/lingkungan";
 import PetaSekitar from "@/components/peta-sekitar";
 import PanelGalat from "@/components/panel-galat";
+import SelFoto from "@/components/sel-foto";
 import { Bagian, BarisKosong, BingkaiTabel, Jejak, Lencana, tautan, td, tdAngka, th, thKanan } from "@/components/tabel";
 import { JudulHalaman, KartuAngka, Rangka, TidakDitemukan } from "@/components/ui";
+import { getGambarSpbu } from "@/lib/data-gambar";
 import { getPetaSpbu } from "@/lib/data-peta";
 import { getProfilSpbu } from "@/lib/data-tahap1";
 import { daya, luas, n, pct, rp, tanggal } from "@/lib/format";
+import { rentangUnggah } from "@/lib/gambar";
 
 export const metadata: Metadata = { title: "Profil SPBU" };
 
@@ -51,9 +55,11 @@ const brightspace = (spbuId: string, lahanId: string) =>
 
 async function Isi({ params }: Pick<Props, "params">) {
   const { id } = await params;
-  const hasil = await getProfilSpbu(id);
+  const [hasil, hasilFoto] = await Promise.all([getProfilSpbu(id), getGambarSpbu(id)]);
   if (hasil.galat) return <PanelGalat galat={hasil.galat} />;
   if (!hasil.data) return <TidakDitemukan apa="SPBU ini" />;
+  // Foto bersifat pelengkap: bila tabelnya belum dipasang atau gagal dimuat, profil tetap tampil tanpa foto.
+  const foto = hasilFoto.data ?? { spbu: [], lahan: {} };
 
   const { spbu, ringkasan: r, lahan, area, bauran_kota: bauran, lingkungan, poi } = hasil.data;
   const kosong = lahan.filter((l) => l.status === "Tersedia");
@@ -82,6 +88,15 @@ async function Isi({ params }: Pick<Props, "params">) {
         <KartuAngka label="Tenant" nilai={n(r.tenant)} catatan="Sedang menyewa di SPBU ini" />
       </dl>
 
+      {foto.spbu.length > 0 && (
+        <Bagian
+          judul="Foto SPBU"
+          keterangan={`Foto dari Brightspace${rentangUnggah(foto.spbu) ? `, diunggah ${rentangUnggah(foto.spbu)}` : ""}. Kondisi di lapangan bisa sudah berubah. Pilih satu foto untuk memperbesarnya.`}
+        >
+          <Galeri gambar={foto.spbu} subjek={`SPBU ${spbu.nomor}`} />
+        </Bagian>
+      )}
+
       <Bagian
         judul="Lahan kosong"
         keterangan="Pilih satu lahan untuk melihat jenis usaha dan tenant yang cocok."
@@ -89,6 +104,9 @@ async function Isi({ params }: Pick<Props, "params">) {
         <BingkaiTabel>
           <thead>
             <tr className="border-b border-line">
+              <th scope="col" className={th}>
+                Foto
+              </th>
               <th scope="col" className={th}>
                 Kode lahan
               </th>
@@ -110,9 +128,12 @@ async function Isi({ params }: Pick<Props, "params">) {
             </tr>
           </thead>
           <tbody>
-            {kosong.length === 0 && <BarisKosong kolom={6} pesan="SPBU ini tidak punya lahan kosong." />}
+            {kosong.length === 0 && <BarisKosong kolom={7} pesan="SPBU ini tidak punya lahan kosong." />}
             {kosong.map((l) => (
               <tr key={l.lahan_id} className="border-b border-line last:border-b-0">
+                <td className="px-4 py-2 align-middle">
+                  <SelFoto gambar={foto.lahan[l.lahan_id]} subjek={`lahan ${l.kode}`} />
+                </td>
                 <th scope="row" className={`${td} text-left font-semibold whitespace-nowrap text-ink`}>
                   {l.kode}
                 </th>
@@ -149,6 +170,9 @@ async function Isi({ params }: Pick<Props, "params">) {
           <thead>
             <tr className="border-b border-line">
               <th scope="col" className={th}>
+                Foto
+              </th>
+              <th scope="col" className={th}>
                 Tenant
               </th>
               <th scope="col" className={th}>
@@ -169,9 +193,12 @@ async function Isi({ params }: Pick<Props, "params">) {
             </tr>
           </thead>
           <tbody>
-            {tersewa.length === 0 && <BarisKosong kolom={6} pesan="Belum ada lahan yang tersewa." />}
+            {tersewa.length === 0 && <BarisKosong kolom={7} pesan="Belum ada lahan yang tersewa." />}
             {tersewa.map((l) => (
               <tr key={l.lahan_id} className="border-b border-line last:border-b-0">
+                <td className="px-4 py-2 align-middle">
+                  <SelFoto gambar={foto.lahan[l.lahan_id]} subjek={`lahan ${l.kode}`} />
+                </td>
                 <th scope="row" className={`${td} text-left font-normal`}>
                   {l.tenant_id ? (
                     <Link href={`/tenant/${l.tenant_id}`} className={tautan}>

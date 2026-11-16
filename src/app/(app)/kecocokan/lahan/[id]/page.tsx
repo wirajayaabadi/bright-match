@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import Galeri from "@/components/galeri";
 import { PanelLingkungan } from "@/components/lingkungan";
 import PanelGalat from "@/components/panel-galat";
 import { CatatanVersi, RincianSkor, Skor } from "@/components/skor";
 import { Bagian, Jejak, Lencana, tautan } from "@/components/tabel";
 import TombolPeluang from "@/components/tombol-peluang";
 import { JudulHalaman, KartuAngka, Rangka, TidakDitemukan } from "@/components/ui";
+import { getGambarLahan } from "@/lib/data-gambar";
 import { getKecocokanLahan } from "@/lib/data-tahap1";
 import { daya, luas, n, pct, rp } from "@/lib/format";
+import { gambarSiap } from "@/lib/gambar";
 
 export const metadata: Metadata = { title: "Kartu rekomendasi lahan" };
 
@@ -24,9 +27,11 @@ export default function KartuLahan({ params }: Props) {
 
 async function Isi({ params }: Pick<Props, "params">) {
   const { id } = await params;
-  const hasil = await getKecocokanLahan(id);
+  const [hasil, hasilFoto] = await Promise.all([getKecocokanLahan(id), getGambarLahan(id)]);
   if (hasil.galat) return <PanelGalat galat={hasil.galat} />;
   if (!hasil.data) return <TidakDitemukan apa="Lahan kosong ini" />;
+  // Foto bersifat pelengkap: bila gagal dimuat, kartu tetap tampil tanpa foto.
+  const foto = hasilFoto.data ?? { lahan: [], spbu: [] };
 
   const { lahan: l, lingkungan, jenis_usaha: jenis, tenant } = hasil.data;
   const totalPembanding = jenis[0]?.total ?? 0;
@@ -59,6 +64,25 @@ async function Isi({ params }: Pick<Props, "params">) {
           catatan={l.tarif_tahunan == null ? "Tarif belum tercantum" : undefined}
         />
       </dl>
+
+      {gambarSiap && foto.lahan.length + foto.spbu.length > 0 && (
+        <Bagian judul="Foto" keterangan="Foto dari Brightspace. Pilih satu foto untuk memperbesarnya.">
+          <div className="grid gap-5">
+            {foto.lahan.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-xs font-semibold tracking-wide text-subtle uppercase">Lahan ini</h3>
+                <Galeri gambar={foto.lahan} subjek={`lahan ${l.kode}`} />
+              </div>
+            )}
+            {foto.spbu.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-xs font-semibold tracking-wide text-subtle uppercase">SPBU {l.spbu_nomor}</h3>
+                <Galeri gambar={foto.spbu} subjek={`SPBU ${l.spbu_nomor}`} />
+              </div>
+            )}
+          </div>
+        </Bagian>
+      )}
 
       <Bagian judul="Lingkungan SPBU">
         <PanelLingkungan l={lingkungan} ringkas />

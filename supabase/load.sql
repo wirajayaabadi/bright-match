@@ -6,8 +6,10 @@
 
 begin;
 
--- Tabel lingkungan ikut dikosongkan karena merujuk ke spbu; scripts/db.sh memuatnya kembali setelah ini.
-truncate public.tempat_peta, public.poi_sekitar, public.spbu_lingkungan, public.area_sekitar, public.lahan, public.spbu restart identity;
+-- Tabel lingkungan dan gambar ikut dikosongkan karena merujuk ke spbu; scripts/db.sh memuatnya kembali setelah ini.
+-- Tabel gambar baru ada setelah migrasi 20261117, jadi hanya disebut bila sudah terpasang.
+select case when to_regclass('public.gambar') is null then '' else 'public.gambar,' end as t_gambar \gset
+truncate :t_gambar public.tempat_peta, public.poi_sekitar, public.spbu_lingkungan, public.area_sekitar, public.lahan, public.spbu restart identity;
 
 \copy public.spbu (id, nomor, nama, alamat, kota, provinsi, lat, lng, koordinat_diperbaiki, fasilitas, jumlah_foto, punya_tur_360, status_listing) from 'supabase/seed/spbu.csv' with (format csv, header true)
 
