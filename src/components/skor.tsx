@@ -40,8 +40,8 @@ export function RincianSkor({ p }: { p: Pasangan }) {
 export function CatatanVersi() {
   return (
     <p className="mt-4 max-w-3xl text-xs leading-relaxed text-subtle">
-      Skor versi 2 memakai enam komponen (100 poin): tipe lokasi 25, bukti dari jaringan 20, permintaan 20, pelengkap
-      bauran 15, kecocokan harga 10, dan kesiapan lahan 10. Tipe lokasi dan permintaan dihitung dari data terbuka
+      Skor versi 2 memakai enam komponen (100 poin): tipe lokasi 25, bukti dari jaringan 20, permintaan 20, melengkapi
+      jenis usaha yang ada 15, kecocokan harga 10, dan kesiapan lahan 10. Tipe lokasi dan permintaan dihitung dari data terbuka
       (Overture Maps dan WorldPop) dan belum diuji lapangan. Jumlah usaha sejenis dalam 500 m ditampilkan sebagai
       konteks, tetapi belum masuk skor. Bobotnya masih usulan dan akan disesuaikan dengan hasil pilot.
     </p>

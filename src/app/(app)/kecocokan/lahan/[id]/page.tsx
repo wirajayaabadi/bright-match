@@ -3,7 +3,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 import Galeri from "@/components/galeri";
 import { PanelLingkungan } from "@/components/lingkungan";
+import KeyakinanData from "@/components/keyakinan-data";
 import PanelGalat from "@/components/panel-galat";
+import PeringatanData from "@/components/peringatan-data";
+import StatusLahanPanel from "@/components/status-lahan";
 import { CatatanVersi, RincianSkor, Skor } from "@/components/skor";
 import { Bagian, Jejak, Lencana, tautan } from "@/components/tabel";
 import TombolPeluang from "@/components/tombol-peluang";
@@ -53,6 +56,21 @@ async function Isi({ params }: Pick<Props, "params">) {
         judul={`Lahan ${l.kode}`}
         keterangan={l.alamat ?? undefined}
       />
+
+      <Suspense fallback={null}>
+        <PeringatanData lahanId={l.lahan_id} />
+      </Suspense>
+
+      <div className="mb-6">
+        <Suspense fallback={<Rangka baris={1} />}>
+          <StatusLahanPanel lahanId={l.lahan_id} />
+        </Suspense>
+        <div className="mt-4">
+          <Suspense fallback={null}>
+            <KeyakinanData lahanId={l.lahan_id} />
+          </Suspense>
+        </div>
+      </div>
 
       <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <KartuAngka label="Luas" nilai={luas(l.luas_m2)} catatan={l.kelas ? `Kelas ${l.kelas}` : "Luas belum tercatat"} />

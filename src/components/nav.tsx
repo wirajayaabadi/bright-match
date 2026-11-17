@@ -6,13 +6,21 @@ import { MODUL } from "@/lib/modules";
 
 const ITEM = [{ href: "/", nama: "Beranda", tahap: 1 as const, siap: true }, ...MODUL];
 
-export default function Nav() {
+const RUANG_TENANT = [
+  { href: "/ruang-kerja", nama: "Penawaran untuk Anda", tahap: 1 as const, siap: true },
+  { href: "/ruang-kerja/jelajah", nama: "Jelajahi lokasi", tahap: 1 as const, siap: true },
+];
+const RUANG_DEALER = [{ href: "/ruang-kerja", nama: "SPBU Anda", tahap: 1 as const, siap: true }];
+
+/** `ruang` tenant atau dealer: hanya ruang kerjanya. Selain itu: modul NFR. */
+export default function Nav({ ruang }: { ruang?: "nfr" | "tenant" | "dealer" | null }) {
   const path = usePathname();
+  const daftar = ruang === "tenant" ? RUANG_TENANT : ruang === "dealer" ? RUANG_DEALER : ITEM;
 
   return (
     <nav aria-label="Modul Bright Match">
       <ul className="flex gap-1 overflow-x-auto pb-1 lg:flex-col lg:overflow-visible lg:pb-0">
-        {ITEM.map((it) => {
+        {daftar.map((it) => {
           const aktif = it.href === "/" ? path === "/" : path === it.href || path.startsWith(`${it.href}/`);
           return (
             <li key={it.href} className="shrink-0">

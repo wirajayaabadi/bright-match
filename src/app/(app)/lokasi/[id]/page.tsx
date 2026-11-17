@@ -8,7 +8,11 @@ import PanelGalat from "@/components/panel-galat";
 import SelFoto from "@/components/sel-foto";
 import { Bagian, BarisKosong, BingkaiTabel, Jejak, Lencana, tautan, td, tdAngka, th, thKanan } from "@/components/tabel";
 import { JudulHalaman, KartuAngka, Rangka, TidakDitemukan } from "@/components/ui";
+import { FormWewenang, TombolPastikan } from "@/components/portal";
+import { getHakSpbu, PENERIMA, POLA } from "@/lib/data-dealer";
 import { getGambarSpbu } from "@/lib/data-gambar";
+import { getProfilSaya } from "@/lib/data-validasi";
+import { bolehUbah } from "@/lib/validasi";
 import { getPetaSpbu } from "@/lib/data-peta";
 import { getProfilSpbu } from "@/lib/data-tahap1";
 import { daya, luas, n, pct, rp, tanggal } from "@/lib/format";
@@ -46,6 +50,44 @@ async function BagianPeta({ id }: { id: string }) {
       keterangan="Tempat usaha dan fasilitas dalam 1 km dari Overture Maps. Pilih satu kelompok untuk menyorotnya di peta dan melihat yang terdekat."
     >
       <PetaSekitar data={hasil.data} />
+    </Bagian>
+  );
+}
+
+/** Wewenang atas ruang usaha di SPBU ini: siapa pemilik, penyetuju, pihak kontrak, dan penerima sewa. */
+async function BagianWewenang({ spbuId }: { spbuId: string }) {
+  const [hasil, profil] = await Promise.all([getHakSpbu(spbuId), getProfilSaya()]);
+  if (!hasil.data) return null;
+  const { hak, pilihan } = hasil.data;
+  const peran = profil.data?.peran_nfr;
+  const dipastikan = hak?.status === "dipastikan";
+  return (
+    <Bagian
+      judul="Wewenang dan penerima sewa"
+      keterangan="Pengelola SPBU belum tentu pemilik lahan atau penanda tangan kontrak, dan sewa belum tentu milik Pertamina. Penawaran baru bisa diterbitkan setelah wewenang ini dipastikan."
+    >
+      <div className="rounded-xl border border-line bg-white p-4 shadow-card">
+        <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-muted">
+          <Lencana warna={dipastikan ? "hijau" : "kuning"}>{dipastikan ? "Dipastikan" : hak ? "Belum dipastikan" : "Belum diisi"}</Lencana>
+          {dipastikan && (
+            <span>
+              Oleh {hak?.dipastikan_oleh ?? "–"} pada {tanggal(hak?.dipastikan)}. {hak?.pola ? POLA[hak.pola] : ""}. Sewa untuk{" "}
+              {PENERIMA[hak?.penerima_sewa ?? ""]?.toLowerCase() ?? "–"}.
+            </span>
+          )}
+          {hak && !dipastikan && <span>Terakhir diubah {hak.diubah_oleh ?? "–"}. Harus dipastikan admin atau penyetuju NFR yang lain.</span>}
+        </p>
+        {bolehUbah(profil.data) ? (
+          <FormWewenang spbuId={spbuId} hak={hak} pilihan={pilihan} />
+        ) : (
+          <p className="text-sm text-subtle">Peran Anda hanya membaca.</p>
+        )}
+        {hak && !dipastikan && (peran === "nfr_admin" || peran === "nfr_penyetuju") && (
+          <div className="mt-4 border-t border-line pt-4">
+            <TombolPastikan spbuId={spbuId} />
+          </div>
+        )}
+      </div>
     </Bagian>
   );
 }
@@ -218,6 +260,10 @@ async function Isi({ params }: Pick<Props, "params">) {
           </tbody>
         </BingkaiTabel>
       </Bagian>
+
+      <Suspense fallback={null}>
+        <BagianWewenang spbuId={spbu.id} />
+      </Suspense>
 
       <Suspense fallback={null}>
         <BagianPeta id={spbu.id} />

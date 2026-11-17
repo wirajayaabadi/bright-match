@@ -4,7 +4,7 @@ import { useRef } from "react";
 import type { Wilayah } from "@/lib/data-tahap1";
 
 export const kolomSaring =
-  "min-h-10 rounded-lg border border-line bg-white px-3 text-sm text-ink placeholder:text-subtle focus:border-brand-blue";
+  "min-h-11 rounded-lg border border-line bg-white px-3 text-sm text-ink placeholder:text-subtle focus:border-brand-blue";
 
 /**
  * Dua pilihan bertingkat: provinsi lalu kota. Dipakai di dalam <Form>;

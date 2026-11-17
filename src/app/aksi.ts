@@ -125,9 +125,12 @@ export async function buatPeluang(fd: FormData) {
 export async function ubahTahap(_sebelumnya: StatusAksi, fd: FormData): Promise<StatusAksi> {
   const id = teks(fd, "id");
   if (!UUID.test(id)) return { ok: false, pesan: "Peluang tidak dikenal." };
+  // Tombol "Akhiri peluang" mengirim tahap = "hasil"; hasil akhirnya dipilih di kolom di sampingnya.
+  const tahap = teks(fd, "tahap") === "hasil" ? teks(fd, "hasil") : teks(fd, "tahap");
+  if (!tahap) return { ok: false, pesan: "Pilih dulu hasil akhirnya." };
   const hasil = await rpc<{ ok: boolean; pesan: string }>("peluang_ubah_tahap", {
     p_id: id,
-    p_tahap: teks(fd, "tahap"),
+    p_tahap: tahap,
     p_oleh: await getEmailPengguna(),
     p_catatan: teks(fd, "catatan") || undefined,
   });

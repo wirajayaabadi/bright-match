@@ -2,6 +2,12 @@ import { Suspense } from "react";
 import Akun from "@/components/akun";
 import { GarisMerek, Merek } from "@/components/brand";
 import Nav from "@/components/nav";
+import { getRuang } from "@/lib/data";
+
+/** Menu mengikuti ruang kerja pengguna, dibaca dari token masuk tanpa bertanya ke basis data. */
+async function NavRuang() {
+  return <Nav ruang={await getRuang()} />;
+}
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
@@ -21,7 +27,7 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <div className="px-2 pb-3 lg:flex-1 lg:overflow-y-auto lg:px-3">
           {/* usePathname() butuh batas Suspense agar kerangka halaman tetap bisa dipra-render. */}
           <Suspense fallback={null}>
-            <Nav />
+            <NavRuang />
           </Suspense>
         </div>
         <div className="border-t border-line px-4 py-3 lg:px-5 lg:py-4">

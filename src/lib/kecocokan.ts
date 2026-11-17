@@ -12,7 +12,7 @@ export const KOMPONEN = [
   { kunci: "poin_tipe", nama: "Tipe lokasi", maks: 25 },
   { kunci: "poin_jaringan", nama: "Bukti jaringan", maks: 20 },
   { kunci: "poin_permintaan", nama: "Permintaan", maks: 20 },
-  { kunci: "poin_pelengkap", nama: "Pelengkap bauran", maks: 15 },
+  { kunci: "poin_pelengkap", nama: "Melengkapi jenis usaha yang ada", maks: 15 },
   { kunci: "poin_harga", nama: "Kecocokan harga", maks: 10 },
   { kunci: "poin_kesiapan", nama: "Kesiapan lahan", maks: 10 },
 ] as const;

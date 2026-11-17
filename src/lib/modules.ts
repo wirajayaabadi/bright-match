@@ -1,5 +1,5 @@
 /**
- * Tujuh modul Bright Match dan tahap pembangunannya.
+ * Modul Bright Match (ruang kerja NFR) dan tahap pembangunannya.
  * Sidebar, beranda, dan halaman "segera hadir" membaca daftar ini,
  * jadi mengaktifkan modul cukup dengan mengubah `siap` menjadi true.
  */
@@ -99,5 +99,46 @@ export const MODUL: Modul[] = [
     siap: true,
   },
 ];
+
+// Modul Bright Match 2.0 ditambahkan di akhir daftar.
+MODUL.push({
+  slug: "validasi",
+  href: "/validasi",
+  nama: "Validasi data",
+  ringkas: "Temuan konflik data yang perlu diputuskan sebelum lahan ditawarkan resmi.",
+  isi: [],
+  tahap: 3,
+  siap: true,
+});
+
+MODUL.push({
+  slug: "inspeksi",
+  href: "/inspeksi",
+  nama: "Kesiapan lahan",
+  ringkas: "Inspeksi lokasi yang memverifikasi lahan kosong sebelum ditawarkan resmi.",
+  isi: [],
+  tahap: 3,
+  siap: true,
+});
+
+MODUL.push({
+  slug: "minat",
+  href: "/minat",
+  nama: "Minat lokasi",
+  ringkas: "Ruang yang diminati tenant dari penjelajah lokasinya, untuk ditindaklanjuti.",
+  isi: [],
+  tahap: 3,
+  siap: true,
+});
+
+MODUL.push({
+  slug: "organisasi",
+  href: "/organisasi",
+  nama: "Organisasi dan anggota",
+  ringkas: "Siapa boleh masuk ke ruang kerja mana, dan sebagai apa.",
+  isi: [],
+  tahap: 3,
+  siap: true,
+});
 
 export const modulDariSlug = (slug: string) => MODUL.find((m) => m.slug === slug);

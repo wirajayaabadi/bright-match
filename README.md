@@ -6,6 +6,10 @@ dengan tenant yang tepat. Bagian dari program Bright Partner.
 Aplikasi web Next.js 16 (App Router, React 19, Tailwind 4) dengan Supabase sebagai basis data dan
 layanan login.
 
+> **Bright Match 2.0.** Penilaian keadaan sekarang, arsitektur sasaran, backlog, dan serah terima tiap irisan ada
+> di [docs/bright-match-2.0.md](docs/bright-match-2.0.md). Profil UI/UX ada di `.ux-profile.md`.
+> Panduan uji coba satu SPBU, dengan calon SPBU dari data nyata, ada di [docs/uji-coba-pilot.md](docs/uji-coba-pilot.md).
+
 ## Menjalankan
 
 ```bash
@@ -49,7 +53,10 @@ dengan file master kontrak.
 | `npm run db:setup` | `db:schema` lalu `db:seed`. |
 | `npm run db:lingkungan` | Memuat ulang data lingkungan dan titik peta dari `supabase/lingkungan/`. `db:seed` menjalankannya otomatis. |
 | `npm run db:gambar` | Memuat ulang daftar foto dari `supabase/gambar/gambar.csv.gz`. `db:seed` menjalankannya otomatis. |
+| `npm run db:validasi` | Mencari ulang temuan kualitas data (Validasi data). `db:seed` menjalankannya otomatis; keputusan yang sudah ada tidak ditimpa. |
+| `npm run db:test` | Uji otomatis aturan akses dan alur di basis data, termasuk gladi uji coba dari langkah 1 sampai outlet beroperasi (`gladi_pilot.sql`). Tiap berkas berjalan dalam satu transaksi yang dibatalkan, jadi tidak meninggalkan data. |
 | `npm run db:check` | Menampilkan ringkasan isi basis data. |
+| `npm test` | Uji rumus studio kelayakan (`tests/*.test.mjs`). Tidak menyentuh basis data. |
 
 Semua perintah aman diulang. Butuh `psql` dan `python3`. Bila sumber data ada di tempat lain:
 `SEED_SOURCE=/jalur/ke/eksplorasi npm run db:seed`.
@@ -101,11 +108,32 @@ Catatan data:
 
 ### Keamanan data
 
-- Semua tabel memakai Row Level Security. Hanya role `authenticated` yang boleh membaca; role `anon`
-  tidak punya akses sama sekali.
-- View dibuat dengan `security_invoker`, jadi tunduk pada aturan yang sama.
-- `src/proxy.ts` mengalihkan pengguna yang belum masuk ke `/login`. Itu pemeriksaan awal; penjaga
-  yang sebenarnya adalah aturan di basis data.
+- **Organisasi dan peran.** Setiap pengguna butuh keanggotaan di satu organisasi (`organisasi`, `keanggotaan`).
+  Hanya anggota organisasi NFR yang bisa membaca data; auditor membaca saja. Akun tenant dan dealer belum melihat
+  data apa pun dan diarahkan ke `/ruang-kerja`. Pengguna baru tanpa keanggotaan tidak melihat apa-apa.
+  Admin NFR mengatur organisasi dan anggota di halaman `/organisasi`: akun dibuat dulu di dasbor Supabase
+  (Authentication, Users), lalu dihubungkan ke organisasi lewat emailnya.
+- **Wewenang SPBU.** Pemilik aset, penyetuju, pihak kontrak, dan penerima sewa tiap SPBU diisi di Profil lokasi,
+  lalu dipastikan orang lain. Penawaran baru boleh terbit setelah itu.
+- **Portal dealer.** Anggota organisasi dealer hanya melihat SPBU yang ditautkan ke organisasinya, dan memutuskan
+  usulan tenant hanya bila organisasinya penyetuju yang sah.
+- **Portal tenant.** Anggota organisasi tenant hanya melihat penawaran yang dibagikan ke organisasinya dan sudah
+  punya versi terbit, lewat fungsi yang memilih kolom aman. Tabel NFR tetap tertutup bagi mereka.
+- **Row Level Security** aktif di semua tabel. Role `anon` hanya bisa memanggil dua fungsi formulir publik.
+- **Tabel alur komersial tidak bisa ditulis langsung.** Calon tenant, peluang, persyaratan, dan riwayat hanya
+  berubah lewat fungsi basis data yang memeriksa peran, mengambil pelaku dari sesi, dan mencatat jejak audit.
+- **Jejak audit** (`audit_peristiwa`) hanya bertambah: baris tidak bisa diubah, dihapus, atau dikosongkan.
+- `supabase/seed/` memuat nama tenant dan nilai kontrak, jadi tidak ikut di-commit.
+- **Lahan baru boleh ditawarkan resmi setelah terverifikasi.** Tahap penawaran mensyaratkan lahan tersedia dan
+  inspeksi lokasinya (dengan foto bukti) sudah diterima admin atau penyetuju NFR yang bukan pemeriksanya.
+- **Alur 12 tahap dijaga basis data.** Syarat masuk tiap tahap, penawaran berversi, persetujuan empat pihak yang
+  terikat versi, serta pencatatan tanda tangan dan mulai beroperasi dijelaskan di `docs/bright-match-2.0.md`.
+- **Foto inspeksi** hanya bisa dibuka anggota NFR yang masuk. Token `R2_*` di server harus berizin tulis.
+- **Dokumen peluang** (PDF, JPEG, PNG, paling besar 24 MB) disimpan di bucket yang sama di awalan `dokumen/`.
+  Berkas di atas 4 MB diunggah dan disimpan berpotongan 3,5 MB, lalu disatukan saat dibuka.
+  Dibuka lewat `/dokumen/<id>`, yang memeriksa hak tiap permintaan: tim NFR, tenant penerima penawaran, atau
+  pengelola SPBU, sesuai keterlihatan dokumennya.
+- Tetap matikan pendaftaran mandiri di dasbor Supabase.
 
 ## Struktur
 
@@ -125,7 +153,7 @@ src/lib/gambar.ts      alamat foto di object storage; src/lib/data-gambar.ts kue
 src/components/galeri.tsx  thumbnail foto dan penampil layar penuh
 src/app/aksi.ts        semua penulisan data (server action)
 src/app/daftar/        formulir publik "Jadi Bright Partner" dan halaman hasilnya (tanpa login)
-src/lib/modules.ts     daftar tujuh modul dan statusnya
+src/lib/modules.ts     daftar modul NFR dan statusnya
 src/lib/supabase/      klien Supabase untuk server dan proxy
 supabase/migrations/   skema basis data
 supabase/lingkungan/   data lingkungan hasil olahan (ikut di-commit; bukan data kontrak)

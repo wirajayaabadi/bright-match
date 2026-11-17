@@ -93,6 +93,15 @@ export async function getPeluangKota(provinsi: string): Promise<Hasil<Peluang[]>
 }
 
 /** Email pengguna yang sedang masuk, atau null. */
+/** Ruang kerja pengguna dari token masuk: nfr, tenant, atau dealer. null bila token belum memuatnya. */
+export async function getRuang(): Promise<"nfr" | "tenant" | "dealer" | null> {
+  if (!supabaseSiap) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getClaims();
+  const ruang = (data?.claims?.app_metadata as { ruang?: unknown } | undefined)?.ruang;
+  return ruang === "nfr" || ruang === "tenant" || ruang === "dealer" ? ruang : null;
+}
+
 export async function getEmailPengguna(): Promise<string | null> {
   if (!supabaseSiap) return null;
   const supabase = await createClient();
@@ -100,3 +109,42 @@ export async function getEmailPengguna(): Promise<string | null> {
   const email = data?.claims?.email;
   return typeof email === "string" ? email : null;
 }
+
+/** Angka dasbor eksekutif NFR (migrasi 20261127_dasbor). `terealisasi` null = belum ada sumber datanya. */
+export type Dasbor = {
+  spbu: number;
+  lahan: number;
+  lahan_tersewa: number;
+  lahan_kosong: number;
+  kosong_terverifikasi: number;
+  kosong_boleh_ditawarkan: number;
+  kosong_tertahan_temuan: number;
+  kosong_ditahan: number;
+  spbu_wewenang_pasti: number;
+  peluang_berjalan: number;
+  peluang_berakhir: number;
+  peluang_terlambat: number;
+  peluang_tanpa_pemilik: number;
+  peluang_tanpa_tindakan: number;
+  peluang_berversi: number;
+  peluang_tanpa_versi: number;
+  per_tahap: Record<string, number>;
+  persetujuan_menunggu: number;
+  inspeksi_menunggu: number;
+  temuan_kritis: number;
+  tanggapan_tenant_7hari: number;
+  kontrak_ditandatangani: number;
+  outlet_beroperasi: number;
+  nilai: {
+    perkiraan_tahunan: number;
+    perkiraan_lahan: number;
+    ditawarkan_tahunan: number;
+    ditawarkan_peluang: number;
+    terkontrak_tahunan: number;
+    terkontrak_masa_sewa: number;
+    terealisasi: number | null;
+  };
+  sumber: { nama: string; per_tanggal: string | null }[];
+};
+
+export const getDasbor = () => rpc<Dasbor>("dasbor_nfr");

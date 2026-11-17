@@ -46,14 +46,14 @@ export function Halaman({
   const jumlahHalaman = Math.max(1, Math.ceil(total / perHalaman));
   const awal = total === 0 ? 0 : (halaman - 1) * perHalaman + 1;
   const akhir = Math.min(total, halaman * perHalaman);
-  const tombol = "inline-flex min-h-9 items-center rounded-lg border border-line bg-white px-3 text-sm font-semibold";
+  const tombol = "inline-flex min-h-11 items-center rounded-lg border border-line bg-white px-3 text-sm font-semibold";
 
   return (
     <nav aria-label="Halaman" className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
       <p className="angka">
         {total === 0 ? `Tidak ada ${satuan}` : `${n(awal)}–${n(akhir)} dari ${n(total)} ${satuan}`}
       </p>
-      {jumlahHalaman > 1 && (
+      {/* Selalu tampil, juga saat hanya satu halaman: posisi daftar tetap terbaca. */}
         <div className="flex items-center gap-2">
           {halaman > 1 ? (
             <Link href={href(halaman - 1)} className={`${tombol} text-ink hover:border-subtle`}>
@@ -77,18 +77,18 @@ export function Halaman({
             </span>
           )}
         </div>
-      )}
     </nav>
   );
 }
 
 /** Label kecil berbingkai. */
-export function Lencana({ children, warna = "netral" }: { children: React.ReactNode; warna?: "netral" | "hijau" | "biru" | "kuning" }) {
+export function Lencana({ children, warna = "netral" }: { children: React.ReactNode; warna?: "netral" | "hijau" | "biru" | "kuning" | "merah" }) {
   const kelas = {
     netral: "border border-line text-muted",
     hijau: "bg-brand-green-soft text-brand-green-strong",
     biru: "bg-brand-blue-soft text-brand-blue-strong",
     kuning: "bg-warn-soft text-warn",
+    merah: "bg-brand-red-soft text-brand-red-strong",
   }[warna];
   return <span className={`inline-block rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${kelas}`}>{children}</span>;
 }

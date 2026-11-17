@@ -5,6 +5,7 @@ import { Suspense } from "react";
 import { GarisMerek } from "@/components/brand";
 import Galeri from "@/components/galeri";
 import PanelGalat from "@/components/panel-galat";
+import PeringatanData from "@/components/peringatan-data";
 import { Jejak } from "@/components/tabel";
 import TombolCetak from "@/components/tombol-cetak";
 import { Rangka, TidakDitemukan } from "@/components/ui";
@@ -175,9 +176,18 @@ async function Isi({ params, searchParams }: Props) {
         </div>
       </div>
 
+      <div className="mx-auto max-w-3xl">
+        <Suspense fallback={null}>
+          <PeringatanData lahanId={l.lahan_id} />
+        </Suspense>
+      </div>
+
       <article lang={b} className="kartu-cetak mx-auto max-w-3xl overflow-hidden rounded-2xl border border-line bg-white shadow-card">
         <GarisMerek className="rounded-none" />
         <div className="p-6 sm:p-9">
+          <Suspense fallback={null}>
+            <PeringatanData lahanId={l.lahan_id} cetak />
+          </Suspense>
           <header className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <Image src="/brand/logo-pertamina.png" alt="Pertamina" width={467} height={118} className="h-6 w-auto" />

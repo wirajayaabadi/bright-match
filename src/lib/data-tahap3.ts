@@ -91,13 +91,16 @@ export type BarisPeluang = {
   pemilik: string | null;
   dibuat: string;
   diubah: string;
+  tindakan_berikut: string | null;
+  tenggat: string | null;
+  terlambat: boolean;
   jenis_pihak: "calon" | "tenant";
   pihak: string;
   syarat_terpenuhi: number;
   syarat_total: number;
 };
 
-export type DaftarPeluang = { total: number; per_tahap: Record<string, number>; baris: BarisPeluang[] };
+export type DaftarPeluang = { total: number; per_tahap: Record<string, number>; terlambat: number; baris: BarisPeluang[] };
 
 export const getDaftarPeluang = (p: { tahap?: string; cari?: string; halaman?: number }) =>
   rpc<DaftarPeluang>("peluang_daftar", { p_tahap: p.tahap, p_cari: p.cari, p_halaman: p.halaman });
@@ -131,6 +134,8 @@ export type PeluangRinci = {
     pemilik: string | null;
     dibuat: string;
     diubah: string;
+    tindakan_berikut: string | null;
+    tenggat: string | null;
   };
   calon: CalonTenant | null;
   tenant: { id: string; nama: string; segmen_utama: string; spbu: number; lahan: number } | null;
@@ -145,6 +150,56 @@ export type PeluangRinci = {
   } | null;
   syarat: Syarat[];
   riwayat: { tahap_dari: string | null; tahap_ke: string; oleh: string | null; catatan: string | null; waktu: string }[];
+  tahap_berikut: string | null;
+  syarat_berikut: { butir: string; terpenuhi: boolean; pesan: string | null }[];
+  penawaran: VersiPenawaran[];
+  persetujuan: Persetujuan[];
+  kontrak: KontrakPeluang | null;
+  audit: { waktu: string; oleh: string | null; peristiwa: string; data: Record<string, unknown> }[];
+  anggota: { email: string; peran: string }[];
+};
+
+export type VersiPenawaran = {
+  id: string;
+  versi: number;
+  status: "draf" | "diterbitkan" | "digantikan";
+  sewa_tahunan: number;
+  lama_sewa_bulan: number;
+  skema: string;
+  bagi_hasil_pct: number | null;
+  deposit: number | null;
+  bebas_sewa_bulan: number;
+  mulai_rencana: string | null;
+  penerima_sewa: string;
+  catatan: string | null;
+  dibuat: string;
+  dibuat_oleh: string | null;
+  diterbitkan: string | null;
+  diterbitkan_oleh: string | null;
+};
+
+export type Persetujuan = {
+  id: string;
+  penawaran_id: string;
+  versi: number;
+  pihak: "nfr" | "dealer" | "tenant" | "hsse";
+  status: "menunggu" | "disetujui" | "minta_revisi" | "ditolak";
+  gugur: boolean;
+  penyetuju_email: string | null;
+  atas_nama: boolean;
+  wewenang: string | null;
+  alasan: string | null;
+  bukti: string | null;
+  diputuskan: string | null;
+};
+
+export type KontrakPeluang = {
+  versi: number;
+  nomor: string;
+  tanggal_tanda_tangan: string;
+  dicatat_oleh: string | null;
+  aktif_sejak: string | null;
+  aktif_dicatat_oleh: string | null;
 };
 
 export const getPeluang = (id: string) => rpc<PeluangRinci>("peluang_rinci", { p_id: id });

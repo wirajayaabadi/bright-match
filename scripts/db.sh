@@ -6,6 +6,8 @@
 #   npm run db:setup    schema + seed
 #   npm run db:lingkungan  muat ulang data lingkungan (tipe lokasi) dari supabase/lingkungan/*.csv
 #   npm run db:gambar   muat ulang daftar gambar dari supabase/gambar/gambar.csv.gz
+#   npm run db:validasi cari ulang temuan kualitas data (pusat validasi data)
+#   npm run db:test     uji otomatis aturan akses dan alur di basis data (tidak meninggalkan data)
 #   npm run db:check    tampilkan ringkasan isi basis data
 #
 # Butuh: psql, python3, dan SUPABASE_DB_URL (di .env.local atau variabel lingkungan).
@@ -72,6 +74,22 @@ seed() {
   sql -f supabase/load.sql
   lingkungan   # load.sql mengosongkan tabel lingkungan dan gambar, jadi dimuat kembali di sini
   gambar
+  validasi     # temuan kualitas data dicari ulang; keputusan peninjau yang sudah ada tidak ditimpa
+}
+
+validasi() {
+  if [ "$(sql -Atc "select to_regprocedure('public.deteksi_masalah_data()') is not null")" != "t" ]; then
+    echo "Pusat validasi data belum dipasang. Jalankan dulu: npm run db:schema" >&2
+    return 0
+  fi
+  sql -c "select jsonb_pretty(public.deteksi_masalah_data()) as temuan_data"
+}
+
+uji() {
+  for berkas in supabase/tests/*.sql; do
+    echo "uji  $(basename "$berkas")"
+    sql -q -f "$berkas"
+  done
 }
 
 case "${1:-}" in
@@ -80,6 +98,8 @@ case "${1:-}" in
   setup)  schema; seed ;;
   lingkungan) lingkungan ;;
   gambar) gambar ;;
+  validasi) validasi ;;
+  test) uji ;;
   check)  sql -c "select * from public.v_ringkasan" ;;
-  *) echo "Pemakaian: scripts/db.sh schema|seed|setup|lingkungan|gambar|check" >&2; exit 1 ;;
+  *) echo "Pemakaian: scripts/db.sh schema|seed|setup|lingkungan|gambar|validasi|test|check" >&2; exit 1 ;;
 esac

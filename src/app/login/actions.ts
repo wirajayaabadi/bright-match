@@ -14,10 +14,12 @@ export async function masuk(_sebelumnya: StatusMasuk, formData: FormData): Promi
   if (!email || !password) return { pesan: "Isi email dan kata sandi." };
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return { pesan: "Email atau kata sandi salah." };
 
-  redirect("/");
+  // Tenant dan dealer langsung ke ruang kerjanya; tim NFR ke beranda.
+  const ruang = (data.user?.app_metadata as { ruang?: unknown } | undefined)?.ruang;
+  redirect(ruang === "tenant" || ruang === "dealer" ? "/ruang-kerja" : "/");
 }
 
 export async function keluar() {

@@ -3,6 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseKey, supabaseSiap, supabaseUrl } from "./env";
 
 const HALAMAN_MASUK = "/login";
+const RUANG_KERJA = "/ruang-kerja";
+/**
+ * Rute berkas yang juga dipakai tenant dan pengelola SPBU dari ruang kerjanya: unggah foto inspeksi,
+ * unggah dokumen, dan buka dokumen. Tiap rute memeriksa haknya sendiri lewat fungsi basis data.
+ */
+const RUTE_BERKAS = ["/api/inspeksi/", "/api/peluang/", "/dokumen/"];
 
 /**
  * Menyegarkan sesi Supabase di setiap permintaan dan menjaga halaman:
@@ -41,6 +47,14 @@ export async function updateSession(request: NextRequest) {
 
   if (!sudahMasuk && !publik) return alihkan(request, response, HALAMAN_MASUK);
   if (sudahMasuk && path === HALAMAN_MASUK) return alihkan(request, response, "/");
+
+  // Akun tenant dan dealer hanya memakai ruang kerjanya (/ruang-kerja dan halaman di bawahnya).
+  // Ini hanya navigasi; data NFR tetap tertutup bagi mereka lewat Row Level Security.
+  const ruang = (data?.claims?.app_metadata as { ruang?: unknown } | undefined)?.ruang;
+  const ruteBerkas = RUTE_BERKAS.some((r) => path.startsWith(r));
+  if (sudahMasuk && (ruang === "tenant" || ruang === "dealer") && !publik && !ruteBerkas && path !== RUANG_KERJA && !path.startsWith(`${RUANG_KERJA}/`)) {
+    return alihkan(request, response, RUANG_KERJA);
+  }
   return response;
 }
 
