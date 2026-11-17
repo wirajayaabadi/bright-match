@@ -506,7 +506,7 @@ function TabPersetujuan({ d, ubah }: { d: PeluangRinci; ubah: boolean }) {
         <p className="mt-1 mb-4 max-w-3xl text-sm leading-relaxed text-muted">
           Kontrak baru bisa ditandatangani setelah keempat pihak menyetujui versi ini.{" "}
           {diTahap
-            ? "Sampai portal tenant dan dealer tersedia, keputusan pihak di luar NFR dicatat tim NFR atas nama mereka, dengan rujukan bukti."
+            ? "Tenant dan pengelola SPBU yang berwenang memutuskan di portalnya masing-masing. Keputusan yang diambil di luar aplikasi, termasuk HSSE, dicatat tim NFR atas nama mereka dengan rujukan bukti."
             : "Keputusan dicatat saat peluang berada di tahap persetujuan."}
         </p>
         <ul className="grid gap-3 lg:grid-cols-2">

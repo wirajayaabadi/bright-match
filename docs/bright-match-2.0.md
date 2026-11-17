@@ -1040,3 +1040,67 @@ tanpa mengubah catatan dokumennya.
 
 **Tugas berikutnya yang disarankan.** Uji coba dengan orang nyata. Setelah aplikasi dipasang di Vercel, buka satu
 dokumen di atas 5 MB di sana untuk memastikan alirannya.
+
+## Serah terima irisan kelima belas: Next.js 16.4.6 (17 November 2026)
+
+**Mengapa.** Next.js 16.4.4 terkena celah keamanan tingkat sedang (kebocoran informasi lintas parameter akar saat
+memakai `use cache`, berlaku untuk 16.3.0 sampai 16.4.4). Akibat sehari-harinya: `npm run build` berhenti dengan
+`SecurityFatalError` pada percobaan pertama dan baru lolos saat diulang.
+
+**Yang diubah.** `next` dan `eslint-config-next` dari 16.4.4 ke 16.4.6 di `package.json` dan `package-lock.json`.
+Tidak ada kode aplikasi yang berubah. Commit `3dc6dd1` ("bright match 2.0") masih memuat versi 16.4.4, jadi untuk
+kembali cukup `git checkout package.json package-lock.json` lalu `npm install`.
+
+**Verifikasi yang sudah dijalankan**
+
+- `npm run build` lolos pada percobaan pertama, tanpa peringatan keamanan. `npm audit` tidak lagi menyebut `next`.
+- `npm run typecheck`, `npm run lint`, `npm test` (14 uji), dan `npm run db:test` (14 berkas): lolos.
+- Uji asap di peramban pada build baru: 28 halaman tim NFR, 5 halaman tenant, dan 4 halaman pengelola SPBU dibuka
+  tanpa halaman galat, tanpa judul yang hilang, dan tanpa meluber (tenant dan pengelola juga di 375 piksel).
+- Aksi server dijalankan sebagai tenant dan sebagai analis pada jalur penolakan; rute foto, rute dokumen, dan rute
+  unggah foto menjawab benar; tenant yang membuka halaman NFR dialihkan ke ruang kerjanya; pengunjung tanpa akun
+  dialihkan ke halaman masuk.
+
+**Yang perlu diketahui**
+
+- `npm audit` masih melaporkan tujuh temuan tingkat sedang, semuanya dari `minimatch` di perkakas lint
+  (`typescript-eslint`). Itu perkakas pengembangan, tidak ikut ke aplikasi yang berjalan, dan tidak saya sentuh.
+- `npm run dev` belum dicoba pada versi baru; yang diuji adalah build produksi.
+- Uji asap membuka halaman dan memeriksa judul, bukan membandingkan tampilannya piksel demi piksel.
+
+## Serah terima irisan keenam belas: akun uji admin dan pemeriksaan layar admin (17 November 2026)
+
+**Mengapa.** Akun uji NFR yang ada hanya analis. Semua layar yang hanya muncul untuk admin atau penyetuju belum
+pernah dilihat di peramban; hanya aturannya yang teruji di basis data.
+
+**Yang dibuat.** Akun `uji.admin@brightmatch.test`, admin NFR, dengan sandi yang sama seperti tiga akun uji lain
+(`UJI_SANDI` di `.env.local`), bertanda `akun_uji`. Alamatnya ditambahkan ke `.env.local` sebagai `UJI_EMAIL_ADMIN`.
+Pengguna menyetujui pembuatannya secara tegas. Akun ini admin sungguhan di basis data yang dipakai, jadi hapus
+sebelum aplikasi dipakai di luar pengembangan: keluarkan dari organisasi di halaman Organisasi dan anggota, lalu
+hapus akunnya di dasbor Supabase.
+
+**Layar yang diperiksa sebagai admin, di 1280 dan 375 piksel, tanpa meluber**
+
+| Layar | Yang terlihat | Tombol ditekan pada jalur yang ditolak atau tidak mengubah apa pun |
+| --- | --- | --- |
+| Organisasi dan anggota | Tombol Keluarkan di tiap anggota kecuali diri sendiri, wilayah penjelajah, dua formulir | Simpan wilayah tanpa perubahan; buat organisasi tanpa nama; hubungkan email yang tidak ada; Keluarkan dengan konfirmasi dijawab tidak |
+| Profil lokasi, bagian wewenang | Formulir wewenang dan tombol "Pastikan wewenang ini" | Memastikan wewenang yang diisi sendiri: ditolak |
+| Inspeksi | Tombol "Tinjau inspeksi", jawaban pemeriksa berdampingan dengan data Brightspace, dua foto bukti | Kembalikan tanpa catatan: ditolak |
+| Peluang, tab Persetujuan | Empat kartu persetujuan dengan "Catat keputusan" | Menyetujui versi yang disusun sendiri: ditolak |
+| Peluang di tahap kontrak | Formulir tanda tangan kontrak | Tanggal di masa depan: ditolak |
+
+Setelah semua itu, jejak audit tetap tiga peristiwa dan tidak ada data yang berubah. Data uji berlabel dan dua foto
+uji di bucket sudah dihapus.
+
+**Yang ditemukan dan diperbaiki.** Kalimat di tab Persetujuan masih menulis "sampai portal tenant dan dealer
+tersedia", padahal kedua portal sudah ada sejak irisan keempat dan kelima. Kalimatnya kini menyebut bahwa tenant dan
+pengelola SPBU memutuskan di portalnya, dan keputusan di luar aplikasi (termasuk HSSE) dicatat tim NFR dengan bukti.
+
+**Yang belum diperiksa**
+
+- Jalur berhasil dari tombol-tombol itu (membuat organisasi, memastikan wewenang, menerima inspeksi, menyetujui,
+  mencatat tanda tangan). Semuanya meninggalkan peristiwa audit yang tidak bisa dihapus. Jalur itu lulus di gladi
+  basis data (`gladi_pilot.sql`), tidak di peramban.
+- Peran penyetuju. Hak penyetuju di layar sama dengan admin kecuali halaman organisasi, jadi tidak dibuatkan akun.
+- Tombol Keluarkan memakai konfirmasi bawaan peramban; yang diperiksa adalah isi pertanyaannya dan bahwa jawaban
+  "tidak" membatalkan.
