@@ -50,13 +50,28 @@ export type MinatLokasi = {
   ditangani: string | null;
   ditangani_oleh: string | null;
   catatan_nfr: string | null;
-  organisasi_id: string;
+  /** Kosong bila minat datang dari calon tenant yang belum punya organisasi. */
+  organisasi_id: string | null;
+  /** Nama organisasi, atau nama usaha calon tenant. */
   organisasi: string;
   demo: boolean;
+  calon_id: string | null;
+  sumber: "jelajah" | "temukan" | "formulir" | "pengelola";
+  /** Jenis usaha yang ingin dihadirkan pengelola SPBU; kosong untuk minat tenant. */
+  segmen: string | null;
+  /** Rekomendasi yang dilihat saat minat dinyatakan. Dikirim aplikasi peminat: keterangan, bukan skor resmi. */
+  potret: { skor?: number; preferensi?: number; versi_model?: string; versi_preferensi?: string; alasan?: string[]; preferensi_ringkas?: string[] } | null;
   kota: string | null;
   provinsi: string | null;
   luas_m2: number | null;
   peluang_id: string | null;
+};
+
+export const SUMBER_MINAT: Record<MinatLokasi["sumber"], string> = {
+  jelajah: "Tenant, dari penjelajah lokasi",
+  temukan: "Tenant, dari rekomendasi",
+  formulir: "Calon tenant, dari formulir Bright Partner",
+  pengelola: "Pengelola SPBU",
 };
 
 export const STATUS_MINAT: Record<MinatLokasi["status"], { nama: string; warna: "netral" | "biru" | "kuning" }> = {

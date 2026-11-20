@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useActionState } from "react";
 import { masuk, type StatusMasuk } from "./actions";
 
@@ -8,9 +9,12 @@ const kolom =
 
 export default function LoginForm() {
   const [status, aksi, menunggu] = useActionState<StatusMasuk, FormData>(masuk, null);
+  // Halaman yang dituju setelah masuk; diperiksa lagi di server terhadap daftar alamat yang diizinkan.
+  const lanjut = useSearchParams().get("lanjut") ?? "";
 
   return (
     <form action={aksi} className="mt-8 space-y-5">
+      <input type="hidden" name="lanjut" value={lanjut} />
       <div>
         <label htmlFor="email" className="text-sm font-semibold text-ink">
           Email

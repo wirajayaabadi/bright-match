@@ -89,22 +89,25 @@ const bantu = "mt-1 text-xs leading-relaxed text-subtle";
 export default function FormCalon({
   aksi,
   internal = false,
+  isiAwal,
 }: {
   aksi: (sebelumnya: StatusAksi, fd: FormData) => Promise<StatusAksi>;
   internal?: boolean;
+  /** Isian awal dari jawaban Temukan peluang. Isian yang ditolak server tetap didahulukan. */
+  isiAwal?: Record<string, string | string[]>;
 }) {
   const [status, kirim, menunggu] = useActionState<StatusAksi, FormData>(aksi, null);
   const [bahasa, setBahasa] = useState<Bahasa>("id");
   const [asal, setAsal] = useState("lokal");
-  const [anggaran, setAnggaran] = useState("");
+  const [anggaran, setAnggaran] = useState(() => (typeof isiAwal?.anggaran_tahunan === "string" ? isiAwal.anggaran_tahunan : ""));
   const t = T[bahasa];
   // Isian terakhir yang ditolak. React mengosongkan formulir setelah aksi selesai, jadi isian itu
   // dipasang kembali sebagai nilai awal (lihat `key` pada pembungkus kolom di bawah).
   const awal = (kunci: string) => {
-    const v = status?.nilai?.[kunci];
+    const v = status?.nilai?.[kunci] ?? isiAwal?.[kunci];
     return typeof v === "string" ? v : "";
   };
-  const provinsiAwal = status?.nilai?.provinsi_minat;
+  const provinsiAwal = status?.nilai?.provinsi_minat ?? isiAwal?.provinsi_minat;
   const bintang = (
     <span className="font-normal text-subtle">
       {" "}

@@ -1104,3 +1104,322 @@ pengelola SPBU memutuskan di portalnya, dan keputusan di luar aplikasi (termasuk
 - Peran penyetuju. Hak penyetuju di layar sama dengan admin kecuali halaman organisasi, jadi tidak dibuatkan akun.
 - Tombol Keluarkan memakai konfirmasi bawaan peramban; yang diperiksa adalah isi pertanyaannya dan bahwa jawaban
   "tidak" membatalkan.
+
+## Serah terima irisan ketujuh belas: Temukan peluang, fase A (20 November 2026)
+
+Temukan peluang (Smart Discovery) adalah pintu depan bagi orang yang belum punya akun: memilih peran, menjawab
+kuesioner, dan melihat ringkasan preferensinya. Fase A hanya fondasi. Rekomendasi yang memakai preferensi itu
+(fase B) dan tindakan dari hasilnya (fase C) belum dibangun.
+
+### Yang sudah ada
+
+- **Halaman depan `/temukan`**: dua kartu peran, cara kerja, dan dasar rekomendasi. Pengunjung yang kembali
+  ditawari melanjutkan atau mulai ulang.
+- **Wizard `/temukan/tenant` dan `/temukan/dealer`**: satu pertanyaan per langkah, lima pertanyaan inti, sisanya
+  boleh dilewati. Tombol kembali peramban, muat ulang, dan alamat `?langkah=` bekerja.
+- **Kuesioner berversi** di `src/lib/temukan/`: pertanyaan (`tenant-v1.ts`, `dealer-v1.ts`), percabangan
+  (`cabang.ts`), pemeriksa jawaban (`periksa.ts`), ringkasan dan pengolahan awal (`ringkas.ts`). Wizard tidak tahu
+  isi kuesioner; pertanyaan baru dengan jenis yang sudah ada cukup ditambahkan di berkas versi.
+- **Sesi anonim**: tabel `sesi_temukan` (migrasi `20261206000000_temukan.sql`). Kuncinya di cookie httpOnly,
+  basis data hanya menyimpan sidik SHA-256. Dihapus 30 hari setelah terakhir diubah.
+- **Sambungan ke yang sudah ada**: jawaban tenant mengisi awal formulir "Jadi Bright Partner" (`/daftar`), yang
+  hasilnya dihitung mesin kecocokan yang sama. Tidak ada mesin rekomendasi baru.
+
+### Keputusan yang perlu diketahui
+
+| Keputusan | Alasan |
+| --- | --- |
+| Alamat utama tanpa akun kini membuka `/temukan`, bukan `/login` | Permintaan rancangan. Alamat lain tetap ke `/login`; pengguna yang sudah masuk tidak terpengaruh. Satu baris di `src/lib/supabase/proxy.ts` bila ingin dikembalikan. |
+| Delapan kartu jenis usaha dipetakan ke sebelas segmen data (`SEGMEN_KARTU`) | Mesin kecocokan bekerja dengan segmen di `lahan.segmen`. Kartu yang memuat dua segmen punya satu pertanyaan lanjutan. |
+| Batas rentang anggaran: Rp 10, 25, 50 juta per tahun | Mengikuti sebaran tarif ruang kosong per 14 November 2026 (median Rp 15 juta, persentil 90 Rp 50 juta). |
+| Peran di kuesioner hanyalah preferensi | Tidak ada hak yang lahir dari memilih "dealer". Diuji di `supabase/tests/temukan.sql`. |
+| Tiap pertanyaan dan kolom bertanda `syarat` atau `preferensi` | Fase B menyaring dengan syarat dan mengurutkan dengan preferensi tanpa menebak. |
+| Data umum tanpa jumlah, tarif, penyewa, atau ruang tersewa | Fungsi `temukan_wilayah`, `temukan_cari_spbu`, `temukan_spbu` terbuka untuk `anon`. |
+| Tanpa Zod, tanpa shadcn/ui, tanpa gradien | Pemeriksa digerakkan konfigurasi dan dipakai di peramban dan server; profil UX proyek melarang gradien dekoratif. Satu paket baru: `lucide-react` (sesuai profil UX). |
+| Huruf judul memakai kapital di awal kalimat saja | Mengikuti `.ux-profile.md`, bukan huruf judul di rancangan. |
+
+### Uji yang dijalankan
+
+| Perintah | Hasil |
+| --- | --- |
+| `npm test` | 28 lulus (14 baru untuk kuesioner) |
+| `npm run db:test` | 15 berkas lulus, termasuk `temukan.sql` |
+| `npm run lint`, `npm run typecheck`, `npm run build` | Bersih |
+| Peramban tanpa kepala, lebar 375 dan 1280 | Tenant 45 dari 45, pengelola SPBU dan jalur keamanan 31 dari 31, akun yang sudah masuk 14 dari 14 |
+
+Skrip uji peramban tidak ikut di repositori. Sesi yang dibuat uji sudah dihapus; `sesi_temukan` kosong setelahnya.
+
+### Yang belum dan risikonya
+
+- **Belum ada rekomendasi dari preferensi.** Ringkasan pengelola SPBU berakhir di tautan masuk. Halaman depan
+  sudah menyebut rekomendasi, jadi fase A sebaiknya tidak dibuka ke umum sendirian.
+- **Rem hanya global dan per sesi** (600 sesi baru per jam, 500 tulisan per sesi). Belum ada rem per alamat IP;
+  itu perlu di tepi jaringan. Satu pihak bisa menghabiskan kuota pembuatan sesi; wizard tetap berjalan tanpa
+  simpanan bila itu terjadi.
+- **Jawaban tersimpan belum dipercaya.** Fungsi simpannya terbuka, jadi `bacaSesi()` membersihkannya lagi.
+  Fase B wajib memakai `bacaSesi()` atau `bersihkan()`, tidak membaca kolom `jawaban` langsung.
+- **Ruang tersewa tidak tampil bagi pengelola SPBU yang belum masuk.** Rancangan meminta "okupansi saat ini";
+  itu baru aman ditampilkan setelah wewenangnya dipastikan.
+- **"SPBU Anda" untuk pengelola yang sudah masuk belum terlihat di peramban**: akun uji dealer belum punya
+  wewenang atas SPBU mana pun. Jalurnya hanya terbukti lewat kode.
+- **Belum ada**: jelajah peta di pertanyaan wilayah, tabel peristiwa analitik (fase D), preferensi tersimpan per
+  akun dan "Ubah preferensi" dari ruang kerja (fase C), pembaca layar sungguhan.
+- **Jumlah langkah bisa berubah di tengah jalan** ("Langkah 1 dari 4" menjadi "2 dari 5") saat pertanyaan
+  bercabang muncul.
+
+## Serah terima irisan kedelapan belas: Temukan peluang, fase B (20 November 2026)
+
+Fase B menyambungkan jawaban kuesioner ke rekomendasi: halaman hasil untuk calon tenant
+(`/temukan/tenant/hasil`) dan untuk pengelola SPBU (`/temukan/dealer/hasil`). Fase C (minat, perbandingan,
+preferensi per akun) belum dibangun.
+
+### Lima lapis
+
+| Lapis | Di mana | Catatan |
+| --- | --- | --- |
+| 1. Syarat wajib | `kecocokan()` di basis data | Jenis usaha, wilayah, luas minimum, daya minimum, anggaran, letak. Tidak pernah dilonggarkan otomatis. |
+| 2. Skor kecocokan | `kecocokan()`, versi model tetap 2 | Enam komponen yang sama. Bobot tidak diubah. |
+| 3. Kesesuaian preferensi | `src/lib/temukan/rekomendasi.ts`, versi `p1` | Angka tersendiri, 0 sampai 100. Prioritas pertama berbobot 3, kedua 2, ketiga 1, faktor lain 1. Faktor tanpa data tidak dihitung. |
+| 4. Keyakinan data | `keyakinan_data_inti()` yang sudah ada | Tujuh butir yang sama dengan tim NFR, dimuat untuk kartu yang sedang tampil. |
+| 5. Keputusan manusia | Halaman hasil | Rincian, alasan, ubah preferensi. Tidak ada persetujuan otomatis. |
+
+### Yang berubah di basis data (migrasi `20261207000000_temukan_rekomendasi.sql`)
+
+- **`kecocokan()` mendapat parameter `p_profil`**: kebutuhan pengunjung diperlakukan seperti calon tenant tanpa
+  baris `calon_tenant`. Fungsi lama dihapus dan dibuat ulang dari definisi yang terpasang, dengan tiga sisipan.
+  Keluaran untuk 12 pemanggilan lama (6 ruang, 4 tenant, 1 calon, 1 per segmen) dibandingkan sebelum dan sesudah:
+  identik.
+- **`temukan_lokasi(jsonb)`**: lokasi yang lolos syarat, paling banyak 300 teratas menurut skor mesin, beserta
+  jumlah seluruhnya, jumlah di luar wilayah, dan jumlah yang tertahan.
+- **`temukan_keyakinan(text[])`**, **`temukan_peluang_spbu(text, text[])`**: keyakinan data, dan jenis usaha
+  per ruang untuk pengelola SPBU (paling banyak enam ruang per panggilan).
+- **`temukan_ruang_tampil()`**: ruang yang boleh tampil untuk umum, dihitung sekaligus. Aturannya sama dengan
+  `v_status_lahan`; uji `temukan_rekomendasi.sql` membandingkan keduanya untuk seluruh jaringan.
+
+### Keputusan yang perlu diketahui
+
+| Keputusan | Alasan |
+| --- | --- |
+| Data kosong lolos syarat, dengan tanda | Aturan mesin yang sudah ada: ruang yang luas, daya, atau tarifnya belum tercatat belum terbukti melanggar. Kartunya diberi peringatan dan jumlahnya disebut di atas daftar. |
+| Anggaran fleksibel = toleransi tarif 1,25 | Sama dengan toleransi tenant eksisting di mesin. Lokasi di atas anggaran diberi tanda. |
+| Luas maksimum, pelanggan, rencana buka, prioritas = preferensi | Hanya memengaruhi urutan, tidak menyaring. |
+| "Akses dan visibilitas" dan "dekat jaringan usaha" belum dinilai | Tidak ada datanya. Ditampilkan sebagai "belum ada data", bukan diberi angka karangan. |
+| Urutan bawaan = rata-rata skor kecocokan dan kesesuaian preferensi | Angka gabungannya tidak ditampilkan, supaya tidak ada skor ketiga. |
+| Tarif acuan Brightspace tampil untuk umum | Sama dengan halaman hasil "Jadi Bright Partner". Selalu disebut tarif acuan, bukan penawaran. |
+| Pengelola SPBU tanpa wewenang hanya melihat jenis usaha dan jumlah calon | Profil calon (tanpa nama) hanya untuk akun yang wewenangnya tercatat di `hak_spbu`. Nama calon tidak pernah dikirim. |
+| "Lainnya" tidak disarankan sebagai jenis usaha | Ia kumpulan usaha tak terklasifikasi. |
+| Ruang ditahan, disengketakan, atau menuju kontrak tidak tampil | Dihitung sebagai "belum bisa ditawarkan". |
+| Wizard dan halaman hasil dipasang ulang pada navigasi baru (`segar.tsx`) | Next.js 16 menyimpan keadaan halaman yang ditinggalkan; tanpa ini jawaban lama muncul lagi setelah diubah. |
+
+### Uji yang dijalankan
+
+| Perintah | Hasil |
+| --- | --- |
+| `npm test` | 37 lulus (9 baru untuk rumus preferensi) |
+| `npm run db:test` | 16 berkas lulus, termasuk `temukan_rekomendasi.sql` |
+| `npm run lint`, `npm run typecheck`, `npm run build` | Bersih |
+| Peramban, lebar 375 dan 1280 | Rekomendasi tenant 37 dari 37, pengelola SPBU 15 dari 15; uji fase A diulang: 45 dari 45 dan 31 dari 31; akun yang sudah masuk 14 dari 14 |
+
+Waktu hitung di basis data: satu kota 0,6 detik, seluruh Indonesia 1,1 detik, satu SPBU enam ruang 1,9 detik.
+
+### Yang belum dan risikonya
+
+- **Belum ada**: nyatakan minat, bandingkan lokasi, preferensi tersimpan per akun, potret rekomendasi
+  (`personalized_match_results`), analitik. Itu fase C dan D.
+- **Preferensi hanya mengurutkan 300 teratas menurut skor mesin.** Untuk pencarian seluruh Indonesia, lokasi di
+  luar 300 itu tidak ikut dinilai. Halaman menyebutnya dan menyarankan mempersempit wilayah.
+- **Fungsi rekomendasi terbuka dan mahal** (sampai dua detik kerja basis data per panggilan), tanpa rem per
+  alamat IP. Perlu pembatas di tepi jaringan sebelum dibuka ke umum.
+- **Profil calon untuk pengelola berwenang hanya terbukti di uji basis data**: akun uji dealer belum punya
+  wewenang atas SPBU mana pun, jadi tampilannya belum pernah terlihat di peramban.
+- **Titik peta tidak bisa dijangkau papan ketik.** Daftar tetap tampilan utama dan memuat hal yang sama.
+- **Foto ruang belum tampil** di kartu: rute foto masih tertutup bagi pengunjung tanpa akun.
+- **Rumus preferensi adalah usulan awal**, belum divalidasi dengan tenant. Pemetaan pelanggan ke tipe lokasi
+  (perkantoran, industri, perumahan) adalah heuristik.
+- **Koordinat sumber**: satu SPBU berprovinsi Banten tampil di peta di wilayah Jawa Barat. Itu data sumber, bukan
+  perhitungan halaman ini.
+
+## Serah terima irisan kesembilan belas: Temukan peluang, fase C (20 November 2026)
+
+Fase C menambahkan tindakan dari rekomendasi: menyimpan preferensi atas akun, membandingkan lokasi, menyatakan
+minat, dan meneruskannya ke kotak kerja tim NFR yang sudah ada. Fase D (analitik, umpan balik, penyempurnaan)
+belum dibangun.
+
+### Yang sudah ada
+
+| Hal | Cara kerjanya |
+| --- | --- |
+| Preferensi per akun | Akun tenant dan akun pengelola SPBU menyimpan jawabannya atas akunnya, jadi terbaca di perangkat mana pun. Peran yang boleh disimpan mengikuti keanggotaan organisasi, bukan pilihan di kuesioner. |
+| Serah terima saat masuk | Jawaban yang diisi sebelum masuk menjadi preferensi akun, bila akun itu belum punya. Tautan "Masuk" dari halaman Temukan peluang membawa pengguna kembali ke halaman itu. |
+| Bandingkan lokasi | Sampai tiga lokasi berdampingan. Tanda unggul hanya di skor kecocokan, kesesuaian preferensi, dan tarif acuan terendah. |
+| Minat tenant berakun | Tombol "Nyatakan minat" di kartu, dengan catatan opsional. Masuk ke `minat_lokasi` dengan asal `temukan`. |
+| Minat pengunjung tanpa akun | Lokasi ditandai (paling banyak sepuluh), lalu diteruskan sebagai minat calon tenant saat formulir "Jadi Bright Partner" dikirim. Asal `formulir`. |
+| Ketertarikan pengelola SPBU | Akun yang wewenangnya atas SPBU itu tercatat mengajukan ketertarikan pada satu jenis usaha untuk satu ruang. Asal `pengelola`. Tidak memilih tenant. |
+| Kotak kerja NFR | Halaman Minat lokasi menampilkan keempat asal, jenis usaha yang diminati, dan tautan ke calon tenant. Peluang tetap dibuat tim NFR dari kartu lahan atau halaman calon. |
+| Ruang kerja | Menu "Rekomendasi lokasi" untuk tenant dan "Peluang untuk SPBU" untuk pengelola. |
+
+### Yang berubah di basis data (migrasi `20261208000000_temukan_aksi.sql`)
+
+- `sesi_temukan`: kolom `diminati`, dan baris akun (`user_id` terisi, tidak kedaluwarsa). `temukan_simpan`,
+  `temukan_sesi`, `temukan_hapus` kini mengenali akun; `temukan_klaim` mengambil alih sesi cookie saat masuk.
+- `minat_lokasi`: kolom `calon_id`, `sumber`, `segmen`, `potret`; `organisasi_id` boleh kosong, dengan syarat tepat
+  satu pihak. `minat_daftar` mengembalikan kolom baru. Fungsi lama `tenant_minati` dan `minat_tangani` tidak diubah.
+- Fungsi baru: `temukan_minati`, `temukan_minati_usaha`, `temukan_minat_saya`, `temukan_tandai`,
+  `temukan_serahkan`.
+
+### Keputusan yang perlu diketahui
+
+| Keputusan | Alasan |
+| --- | --- |
+| Minat tidak membuat peluang | Aturan yang sudah ada: minat tidak mengikat, peluang dibuat tim NFR. Satu pintu, satu kotak kerja. |
+| Tenant berakun boleh meminati ruang yang belum diverifikasi | Rekomendasi memang menampilkannya. Verifikasi tetap syarat sebelum penawaran resmi, dan itu dijaga alur peluang. Ini lebih longgar daripada penjelajah lokasi, yang hanya memuat ruang terverifikasi di provinsi yang dibuka admin. |
+| Pengunjung tanpa akun tidak bisa menyatakan minat resmi | Minat butuh identitas. Jalurnya formulir Bright Partner, yang sudah ada dan tidak butuh akun. |
+| Potret rekomendasi disimpan sebagai keterangan | Dikirim aplikasi peminat, jadi dibersihkan dan tidak dipakai untuk keputusan. Skor resmi dihitung saat peluang dibuat. |
+| Ketertarikan pengelola menyebut jenis usaha, bukan tenant | Nama calon tidak dibuka ke pengelola sebelum tahap persetujuan. |
+| Halaman hasil tidak lagi mengalihkan ke kuesioner | Peramban mengingat pengalihan per alamat, sehingga tautan ke hasil terpental walau jawaban sudah lengkap. Kini tampil panel "lengkapi dulu". |
+| Alamat tujuan setelah masuk dibatasi | Hanya `/temukan/tenant` dan `/temukan/dealer` (dengan atau tanpa `/hasil`), dan hanya untuk ruang akun itu. |
+
+### Uji yang dijalankan
+
+| Perintah | Hasil |
+| --- | --- |
+| `npm test` | 38 lulus |
+| `npm run db:test` | 17 berkas lulus, termasuk `temukan_aksi.sql` |
+| `npm run lint`, `npm run typecheck`, `npm run build` | Bersih |
+| Peramban, lebar 375 dan 1280 | Tindakan (bandingkan, tandai, serah terima, masuk, lintas perangkat) 28 dari 28; akun pengelola SPBU dan NFR 13 dari 13; uji fase A dan B diulang: 45, 31, 38, dan 16 lulus semua; akun yang sudah masuk 14 dari 14 |
+
+### Yang sengaja tidak ditekan di peramban
+
+Tombol kirim minat, kirim ketertarikan, dan kirim formulir Bright Partner tidak ditekan: semuanya menulis data
+nyata dan jejak audit yang tidak bisa dihapus. Jalur itu terbukti di `supabase/tests/temukan_aksi.sql`, dalam
+transaksi yang dibatalkan. Yang terbukti di peramban: tombol dan formulirnya tampil untuk peran yang benar dan
+tidak tampil untuk yang lain.
+
+### Yang belum dan risikonya
+
+- **Belum ada**: analitik dan umpan balik rekomendasi (fase D), potret rekomendasi tersimpan untuk semua hasil,
+  perbandingan calon tenant untuk pengelola, pemberitahuan ke tim NFR saat minat masuk.
+- **Tombol "Ajukan ketertarikan" belum pernah terlihat di peramban**: akun uji dealer belum punya wewenang atas
+  SPBU mana pun.
+- **Penerusan minat dari formulir bergantung pada cookie sesi yang sama.** Bila pengunjung menandai lokasi di satu
+  peramban lalu mendaftar di peramban lain, tandanya tidak ikut.
+- **Sesi cookie yang diambil alih tidak lagi terbaca tanpa masuk.** Itu disengaja, tetapi pengguna yang keluar
+  akan melihat kuesioner kosong.
+- **Rem per alamat IP tetap belum ada** untuk fungsi yang terbuka tanpa akun.
+
+## Serah terima irisan kedua puluh: Temukan peluang, fase D (20 November 2026)
+
+Fase D menambahkan analitik tanpa identitas, umpan balik rekomendasi, penyempurnaan percabangan dan kegunaan,
+satu penghematan kinerja, dan verifikasi aksesibilitas dengan alat otomatis. Ini fase terakhir dari rancangan
+Smart Discovery.
+
+### Analitik
+
+- **Dicatat di server.** Perjalanan kuesioner dibaca pemicu basis data dari perubahan baris `sesi_temukan`, dan
+  minat dari `minat_lokasi`. Halaman hanya boleh mengirim tiga peristiwa tampilan (rekomendasi dibuat, dilihat,
+  diklik), paling banyak 300 per sesi per hari.
+- **Sebelas nama peristiwa** mengikuti rancangan: `discovery_started`, `role_selected`, `question_answered`,
+  `question_skipped`, `discovery_completed`, `recommendation_generated`, `recommendation_viewed`,
+  `recommendation_clicked`, `preferences_updated`, `tenant_interest_submitted`, `dealer_interest_submitted`.
+- **Tanpa data pribadi.** Tidak ada akun, email, alamat IP, atau teks bebas. Sesi dikenali lewat pseudonim.
+  Isi jawaban hanya ikut untuk pertanyaan pilihan; wilayah sampai provinsi; anggaran sebagai rentang.
+- **Retensi 180 hari** untuk peristiwa dan umpan balik (`temukan_retensi()`), dijalankan sesekali saat ada
+  tulisan baru karena tidak ada penjadwal.
+- **Halaman `/analitik-temukan`** untuk tim NFR: penyelesaian, median lama pengisian, corong per pertanyaan,
+  titik berhenti, rekomendasi tanpa hasil, dari rekomendasi ke minat, pilihan paling sering, dan umpan balik.
+  Di bawah 30 sesi halaman memberi peringatan bahwa persentasenya belum bisa dibaca sebagai pola.
+
+### Umpan balik rekomendasi
+
+Tiap kartu lokasi, dan tiap jenis usaha di hasil pengelola SPBU, punya "Sesuai" dan "Kurang sesuai". Bila
+kurang sesuai, pengguna boleh memilih satu alasan dari daftar (tarif, lokasi, ruang, data, lain). Tanpa teks
+bebas. Satu penilaian per sesi per rekomendasi; penilaian baru menimpa yang lama. Disimpan di `umpan_temukan`
+bersama skor dan urutan saat dinilai, supaya terlihat apakah skor tinggi memang lebih sering dinilai sesuai.
+
+### Penyempurnaan
+
+| Hal | Perubahan |
+| --- | --- |
+| Hitungan langkah | "Langkah n dari m" kini menghitung pertanyaan inti yang masih mungkin tampil, jadi m tidak bertambah di tengah jalan (dulu 1 dari 4 menjadi 2 dari 5). |
+| Percabangan tenant | Untuk F&B, parkir pelanggan ditanyakan langsung, tidak lagi di balik "Tambah detail". |
+| Percabangan pengelola | Daya yang bisa disediakan ditanyakan bila listrik tersedia atau perlu ditambah. |
+| Versi kuesioner | Naik ke `2026.11.1`. Jawaban versi sebelumnya tetap terbaca; kolom yang tidak lagi tampil dibuang saat dibersihkan. |
+| Cip preferensi di ponsel | Tiga pertama saja, sisanya lewat tautan "+N lainnya". |
+| Perbandingan di ponsel | Bilah cari dan saringan disembunyikan saat membandingkan, supaya tabel langsung terlihat. |
+| Kinerja | Daftar wilayah disimpan sementara satu jam (`use cache`), tidak lagi ditanyakan ke basis data di tiap kunjungan wizard. Daftar kosong tidak disimpan. |
+
+### Verifikasi aksesibilitas
+
+Diuji dengan axe-core 4.14 (aturan WCAG 2.0, 2.1, dan 2.2 tingkat A dan AA, ditambah praktik baik) pada 26
+layar dan keadaan, di lebar 375 dan 1280: halaman depan, masuk, tiap jenis pertanyaan wizard termasuk keadaan
+galat, ringkasan, daftar hasil, rincian, perbandingan, peta, tampilan kosong, dialog, formulir Bright Partner,
+wizard dan hasil pengelola SPBU, serta halaman analitik dan minat NFR. Hasil akhir: tanpa temuan.
+
+Yang ditemukan dan diperbaiki:
+
+| Temuan | Perbaikan |
+| --- | --- |
+| Nama tombol untuk pembaca layar tidak memuat teks yang terlihat (WCAG 2.5.3), misalnya "Tandai untuk diminati" | Keterangan ruang kini ditambahkan sebagai teks khusus pembaca layar di belakang teks yang terlihat. |
+| Bingkai tabel yang bisa digulung tidak bisa dijangkau papan ketik (halaman analitik) | Bingkainya bisa difokus dan diberi nama. |
+| Daftar definisi memuat elemen yang tidak diizinkan (`KartuAngka`, dipakai juga di beranda NFR) | Catatan kartu kini elemen `dd`. |
+| Dua wilayah halaman bernama sama di tampilan perbandingan | Bingkai tabel diberi nama sendiri. |
+
+Diuji juga tanpa tetikus: Tab mencapai pilihan dengan cincin fokus yang terlihat, panah memindahkan pilihan,
+Enter melanjutkan dan fokus pindah ke judul pertanyaan, kotak cari wilayah bisa dipakai penuh, dialog mengurung
+fokus dan Esc mengembalikannya ke tombol pemicu, dan preferensi "kurangi gerak" mengganti geseran dengan pudar.
+
+### Uji yang dijalankan
+
+| Perintah | Hasil |
+| --- | --- |
+| `npm test` | 43 lulus |
+| `npm run db:test` | 18 berkas lulus, termasuk `temukan_analitik.sql` |
+| `npm run lint`, `npm run typecheck`, `npm run build` | Bersih |
+| Aksesibilitas (axe dan papan ketik), 375 dan 1280 | 36 dari 36 di tiap lebar |
+| Uji fase D di peramban | 23 dari 23 |
+| Uji fase A sampai C diulang, 375 dan 1280 | 45, 31, 38, 16, dan 28 lulus semua; akun 14 dan 13 lulus semua |
+
+Keluaran mesin kecocokan untuk pemanggilan lama tetap identik. Peristiwa dan umpan balik buatan pengujian sudah
+dihapus; kedua tabel kosong saat serah terima.
+
+### Yang belum dan risikonya
+
+- **Belum diuji dengan pembaca layar sungguhan** (VoiceOver, TalkBack) dan belum dengan pengguna nyata. Axe
+  menangkap pelanggaran yang bisa diperiksa mesin, bukan mutu pengalaman.
+- **Titik peta tetap tidak bisa dijangkau papan ketik.** Daftar memuat hal yang sama.
+- **Halaman yang hanya dibuka tanpa menjawab tidak tercatat**, jadi "sesi yang mulai" bukan jumlah pengunjung.
+  Itu disengaja agar tidak perlu cookie sebelum ada jawaban.
+- **Pseudonim bukan anonim penuh**: pihak dengan akses basis data bisa menautkan sesi akun ke peristiwanya.
+- **Retensi bergantung pada lalu lintas**: tanpa tulisan baru, penghapusan tidak berjalan. Bila perlu pasti,
+  jadwalkan `select public.temukan_retensi()` harian.
+- **Rumus preferensi belum disetel dari umpan balik.** Datanya kini terkumpul, tetapi penyetelan baru masuk akal
+  setelah ada cukup penilaian dari pengguna nyata.
+- **Kinerja belum diukur di peramban.** Yang diukur hanya waktu fungsi basis data (fase B).
+- **Rem per alamat IP tetap belum ada.**
+
+## Akun simulasi Temukan peluang (20 November 2026)
+
+Dua akun dibuat atas permintaan pengguna, lalu menjalankan Temukan peluang lewat aplikasi sungguhan di peramban,
+termasuk tombol kirim yang sebelumnya sengaja tidak ditekan. Email dan kata sandinya ada di `.env.local`
+(`SIM_EMAIL_TENANT`, `SIM_EMAIL_DEALER`, `SIM_SANDI`). Keduanya bertanda `akun_uji` dan `akun_simulasi`.
+
+| Akun | Organisasi (bertanda uji) | Yang sudah dijalankan |
+| --- | --- | --- |
+| `simulasi.tenant@brightmatch.test` | Tenant Simulasi (akun demonstrasi) | Kuesioner F&B untuk Jakarta Selatan sampai selesai, 51 rekomendasi, perbandingan dua lokasi, dua penilaian, dan minat pada ruang 3412303-IN-001. |
+| `simulasi.dealer@brightmatch.test` | Pengelola SPBU Simulasi (akun demonstrasi) | Kuesioner untuk SPBU 3412605 (lima ruang) sampai selesai, jenis usaha per ruang dengan profil calon tanpa nama, satu penilaian, dan ketertarikan pada makanan dan minuman untuk ruang 3412605-IN-002. |
+
+**Yang tertulis di basis data.** Dua akun dan dua organisasi bertanda uji; satu baris `hak_spbu` yang menautkan
+SPBU 3412605 ke organisasi pengelola simulasi (hanya tautan: pola, pemilik aset, penyetuju, dan penerima sewa
+dikosongkan karena tidak ada sumbernya, status belum dipastikan); dua minat berstatus baru di halaman Minat lokasi
+NFR, keduanya bertanda "Organisasi uji" dan catatannya diawali "Simulasi:"; dua preferensi akun; peristiwa analitik
+dan tiga penilaian dari kedua sesi; dan tujuh baris jejak audit yang tidak bisa dihapus.
+
+SPBU 3412605 dipilih karena bukan salah satu dari sembilan calon uji coba, belum punya catatan wewenang, peluang,
+atau temuan data, dan semua ruangnya kosong.
+
+**Yang belum dijalankan.** Tindak lanjut NFR atas kedua minat itu, dan seluruh alur komersial sesudahnya (peluang,
+penawaran, survei, persetujuan).
+
+**Sebelum aplikasi dipakai sungguhan:** tutup kedua minat di halaman Minat lokasi, kosongkan organisasi pengelola
+di wewenang SPBU 3412605, keluarkan kedua akun dari organisasinya, hapus akunnya di dasbor Supabase, dan hapus dua
+organisasi bertanda uji itu. Angka di halaman analitik memuat dua sesi simulasi ini sampai retensinya habis.

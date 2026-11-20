@@ -124,3 +124,61 @@ body {
 .peta-sekitar .leaflet-tooltip.peta-label::before {
   display: none;
 }
+
+/* Temukan peluang: pergantian langkah wizard dan tanda pilihan. Hanya transform dan opacity. */
+@keyframes temukan-masuk {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes temukan-centang {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes temukan-pudar {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.temukan-masuk {
+  animation: temukan-masuk 200ms ease-out both;
+}
+.temukan-centang {
+  animation: temukan-centang 150ms ease-out both;
+}
+.temukan-kemajuan {
+  transform-origin: left center;
+  transition: transform 300ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .temukan-masuk {
+    animation: temukan-pudar 150ms ease-out both;
+  }
+  .temukan-centang {
+    animation: none;
+  }
+  .temukan-kemajuan {
+    transition: none;
+  }
+}
+/* Judul pertanyaan menerima fokus lewat skrip agar diumumkan pembaca layar; ia bukan kendali, jadi tanpa cincin fokus. */
+.temukan-judul:focus {
+  outline: none;
+}
+dialog.temukan-dialog::backdrop {
+  background: rgb(16 24 40 / 0.45);
+}

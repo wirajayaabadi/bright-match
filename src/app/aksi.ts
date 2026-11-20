@@ -4,6 +4,7 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { getEmailPengguna, rpc } from "@/lib/data";
 import { JENIS_USAHA, UUID } from "@/lib/istilah";
+import { kunciSesi } from "@/lib/temukan/sesi";
 
 /**
  * Semua penulisan data tahap 3. Tiap aksi memanggil satu fungsi basis data; aturan dan
@@ -82,7 +83,13 @@ export async function daftarPublik(_sebelumnya: StatusAksi, fd: FormData): Promi
   const hasil = await rpc<{ token: string }>("daftar_calon", { p });
   if (hasil.galat) return gagal(pesanGalat(hasil.galat, en));
   if (!hasil.data?.token) return gagal(pesanGalat({ jenis: "kosong" }, en));
-  redirect(`/daftar/${hasil.data.token}`);
+
+  // Lokasi yang ditandai di Temukan peluang diteruskan sebagai minat calon ini. Pendaftarannya sendiri sudah
+  // tersimpan, jadi kegagalan di sini tidak membatalkannya.
+  const kunci = await kunciSesi();
+  const serah = kunci ? await rpc<{ jumlah: number }>("temukan_serahkan", { p_token: kunci, p_calon_token: hasil.data.token }) : null;
+  const jumlah = serah?.data?.jumlah ?? 0;
+  redirect(`/daftar/${hasil.data.token}${jumlah > 0 ? `?minat=${jumlah}` : ""}`);
 }
 
 // ---------------------------------------------------------------- calon tenant (tim NFR)

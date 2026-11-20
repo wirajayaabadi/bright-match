@@ -125,7 +125,17 @@ MODUL.push({
   slug: "minat",
   href: "/minat",
   nama: "Minat lokasi",
-  ringkas: "Ruang yang diminati tenant dari penjelajah lokasinya, untuk ditindaklanjuti.",
+  ringkas: "Ruang yang diminati tenant, calon tenant, atau pengelola SPBU, untuk ditindaklanjuti.",
+  isi: [],
+  tahap: 3,
+  siap: true,
+});
+
+MODUL.push({
+  slug: "analitik-temukan",
+  href: "/analitik-temukan",
+  nama: "Analitik Temukan peluang",
+  ringkas: "Di mana pengunjung berhenti menjawab, seberapa sering rekomendasi kosong, dan apakah rekomendasinya dinilai sesuai.",
   isi: [],
   tahap: 3,
   siap: true,

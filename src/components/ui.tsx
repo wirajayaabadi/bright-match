@@ -24,7 +24,7 @@ export function KartuAngka({ label, nilai, catatan }: { label: string; nilai: st
     <div className="rounded-xl border border-line bg-white p-5 shadow-card">
       <dt className="text-sm font-medium text-muted">{label}</dt>
       <dd className="angka mt-2 text-3xl leading-none font-extrabold tracking-[-0.02em] text-ink">{nilai}</dd>
-      {catatan && <p className="mt-2 text-xs leading-relaxed text-subtle">{catatan}</p>}
+      {catatan && <dd className="mt-2 text-xs leading-relaxed text-subtle">{catatan}</dd>}
     </div>
   );
 }

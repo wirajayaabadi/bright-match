@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { GarisMerek, Merek } from "@/components/brand";
 import { Rangka } from "@/components/ui";
 import { getHasilCalon } from "@/lib/data-tahap3";
-import { daya, luas, n, rp } from "@/lib/format";
+import { daya, luas, n, rp, satu } from "@/lib/format";
 import { namaJenisUsaha, POSISI, UUID } from "@/lib/istilah";
 import { ATRIBUSI_LINGKUNGAN, namaTipe } from "@/lib/tipe-lokasi";
 
@@ -16,6 +16,7 @@ const T = {
   id: {
     terima: "Terima kasih",
     diterima: "Pendaftaran Anda sudah kami terima. Tim Non Fuel Retail Pertamina akan menghubungi Anda.",
+    minat: (j: number) => `${n(j)} lokasi yang Anda tandai sudah kami teruskan ke tim Non Fuel Retail sebagai minat Anda. Minat tidak mengikat dan belum menjadi penawaran.`,
     kebutuhan: "Kebutuhan yang Anda sampaikan",
     cocok: "Ruang usaha yang cocok",
     ada: (j: number, t: number) => `${n(t)} teratas dari ${n(j)} ruang usaha kosong yang memenuhi kebutuhan Anda.`,
@@ -38,6 +39,7 @@ const T = {
   en: {
     terima: "Thank you",
     diterima: "We have received your registration. The Pertamina Non Fuel Retail team will contact you.",
+    minat: (j: number) => `The ${n(j)} location(s) you marked have been passed to the Non Fuel Retail team as your expression of interest. This is not binding and is not an offer.`,
     kebutuhan: "What you told us",
     cocok: "Matching retail spaces",
     ada: (j: number, t: number) => `Top ${n(t)} of ${n(j)} vacant spaces that meet your requirements.`,
@@ -60,7 +62,7 @@ const T = {
 } as const;
 
 /** Hasil pendaftaran: ringkasan kebutuhan dan lahan kosong yang cocok. Dibuka dengan token, tanpa login. */
-export default function HalamanHasil({ params }: Props) {
+export default function HalamanHasil({ params, searchParams }: Props) {
   return (
     <main className="px-4 py-8 sm:py-12">
       <div className="mx-auto max-w-4xl overflow-hidden rounded-2xl border border-line bg-white shadow-card">
@@ -68,7 +70,7 @@ export default function HalamanHasil({ params }: Props) {
         <div className="p-6 sm:p-10">
           <Merek />
           <Suspense fallback={<div className="mt-8"><Rangka baris={4} /></div>}>
-            <Isi params={params} />
+            <Isi params={params} searchParams={searchParams} />
           </Suspense>
         </div>
       </div>
@@ -77,8 +79,10 @@ export default function HalamanHasil({ params }: Props) {
   );
 }
 
-async function Isi({ params }: Pick<Props, "params">) {
-  const { token } = await params;
+async function Isi({ params, searchParams }: Props) {
+  const [{ token }, cari] = await Promise.all([params, searchParams]);
+  // Jumlah lokasi yang baru saja diteruskan dari Temukan peluang. Hanya keterangan di layar.
+  const minat = Number(satu(cari.minat));
   const hasil = UUID.test(token) ? await getHasilCalon(token) : null;
   const h = hasil && !hasil.galat ? hasil.data : null;
 
@@ -108,6 +112,11 @@ async function Isi({ params }: Pick<Props, "params">) {
         {t.terima}, {c.nama_usaha}
       </h1>
       <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-muted">{t.diterima}</p>
+      {Number.isInteger(minat) && minat >= 1 && minat <= 10 && (
+        <p role="status" className="mt-4 max-w-2xl rounded-lg bg-brand-green-soft px-3.5 py-2.5 text-sm leading-relaxed text-brand-green-strong">
+          {t.minat(minat)}
+        </p>
+      )}
 
       <h2 className="mt-8 text-lg font-bold text-ink">{t.kebutuhan}</h2>
       <dl className="mt-3 grid gap-x-8 gap-y-2 text-sm sm:grid-cols-2">

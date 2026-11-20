@@ -9,8 +9,13 @@ const ITEM = [{ href: "/", nama: "Beranda", tahap: 1 as const, siap: true }, ...
 const RUANG_TENANT = [
   { href: "/ruang-kerja", nama: "Penawaran untuk Anda", tahap: 1 as const, siap: true },
   { href: "/ruang-kerja/jelajah", nama: "Jelajahi lokasi", tahap: 1 as const, siap: true },
+  // Di luar ruang kerja: rekomendasi dari preferensi akun. Tanpa preferensi, pengguna dibawa ke kuesionernya.
+  { href: "/temukan/tenant/hasil", nama: "Rekomendasi lokasi", tahap: 1 as const, siap: true },
 ];
-const RUANG_DEALER = [{ href: "/ruang-kerja", nama: "SPBU Anda", tahap: 1 as const, siap: true }];
+const RUANG_DEALER = [
+  { href: "/ruang-kerja", nama: "SPBU Anda", tahap: 1 as const, siap: true },
+  { href: "/temukan/dealer/hasil", nama: "Peluang untuk SPBU", tahap: 1 as const, siap: true },
+];
 
 /** `ruang` tenant atau dealer: hanya ruang kerjanya. Selain itu: modul NFR. */
 export default function Nav({ ruang }: { ruang?: "nfr" | "tenant" | "dealer" | null }) {

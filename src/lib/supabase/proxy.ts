@@ -4,6 +4,8 @@ import { supabaseKey, supabaseSiap, supabaseUrl } from "./env";
 
 const HALAMAN_MASUK = "/login";
 const RUANG_KERJA = "/ruang-kerja";
+/** Temukan peluang: halaman depan dan kuesioner, terbuka untuk umum. */
+const TEMUKAN = "/temukan";
 /**
  * Rute berkas yang juga dipakai tenant dan pengelola SPBU dari ruang kerjanya: unggah foto inspeksi,
  * unggah dokumen, dan buka dokumen. Tiap rute memeriksa haknya sendiri lewat fungsi basis data.
@@ -42,9 +44,13 @@ export async function updateSession(request: NextRequest) {
   const sudahMasuk = Boolean(data?.claims);
   const path = request.nextUrl.pathname;
 
-  // Formulir "Jadi Bright Partner" dan halaman hasilnya terbuka untuk umum.
-  const publik = path === HALAMAN_MASUK || path === "/daftar" || path.startsWith("/daftar/");
+  // Formulir "Jadi Bright Partner", halaman hasilnya, dan Temukan peluang terbuka untuk umum.
+  const publik =
+    path === HALAMAN_MASUK || path === "/daftar" || path.startsWith("/daftar/") || path === TEMUKAN || path.startsWith(`${TEMUKAN}/`);
 
+  // Pengunjung yang belum masuk dan membuka alamat utama disambut halaman Temukan peluang, yang punya tombol Masuk.
+  // Alamat lain tetap ke halaman masuk. Pengguna yang sudah masuk tidak pernah dialihkan ke sana.
+  if (!sudahMasuk && path === "/") return alihkan(request, response, TEMUKAN);
   if (!sudahMasuk && !publik) return alihkan(request, response, HALAMAN_MASUK);
   if (sudahMasuk && path === HALAMAN_MASUK) return alihkan(request, response, "/");
 

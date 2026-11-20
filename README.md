@@ -353,3 +353,21 @@ Tabel `calon_tenant` sendiri tetap tertutup bagi `anon`. Yang perlu diketahui se
 - React mengosongkan formulir setelah aksinya selesai. Formulir yang bisa ditolak validasi mengembalikan isiannya
   lewat status aksi (lihat `form-calon.tsx`).
 - Error mode dev tertentu hanya muncul di terminal `next dev`, tidak di `.next/dev/logs`.
+
+## Temukan peluang (Smart Discovery)
+
+Pintu depan tanpa akun di `/temukan`: memilih peran (mencari lokasi usaha atau mengelola SPBU), menjawab kuesioner,
+lalu melihat rekomendasi: lokasi yang sesuai untuk calon tenant (`/temukan/tenant/hasil`) dan jenis usaha per ruang
+untuk pengelola SPBU (`/temukan/dealer/hasil`). Keempat fase rancangannya sudah dibangun: fondasi, rekomendasi,
+tindakan (preferensi per akun, perbandingan, minat), dan penyempurnaan (analitik, umpan balik, aksesibilitas).
+
+- Kuesioner berversi: `src/lib/temukan/` (pertanyaan, percabangan, pemeriksa jawaban).
+- Antarmuka: `src/components/temukan/`, rute `src/app/temukan/`.
+- Sesi anonim: migrasi `supabase/migrations/20261206000000_temukan.sql`, uji `supabase/tests/temukan.sql`.
+- Rekomendasi: migrasi `20261207000000_temukan_rekomendasi.sql`, rumus preferensi `src/lib/temukan/rekomendasi.ts`.
+  Mesin kecocokannya tetap satu (`kecocokan()`), dengan parameter `p_profil` untuk pengunjung.
+- Tindakan: migrasi `20261208000000_temukan_aksi.sql`. Minat dari Temukan peluang masuk ke halaman Minat lokasi
+  tim NFR yang sudah ada; minat tidak membuat peluang.
+- Analitik: migrasi `20261209000000_temukan_analitik.sql`, halaman `/analitik-temukan` untuk tim NFR. Tanpa
+  identitas pengguna; peristiwa dan umpan balik dihapus setelah 180 hari.
+- Rinciannya ada di `docs/bright-match-2.0.md`, serah terima irisan ketujuh belas sampai kedua puluh.

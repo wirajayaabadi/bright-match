@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Suspense } from "react";
 import { GarisMerek, Merek } from "@/components/brand";
 import PanelGalat from "@/components/panel-galat";
 import { supabaseSiap } from "@/lib/supabase/env";
@@ -19,7 +21,9 @@ export default function HalamanMasuk() {
               Platform ini memuat data kontrak tenant, jadi hanya bisa dibuka oleh pengguna terdaftar.
             </p>
             {supabaseSiap ? (
-              <LoginForm />
+              <Suspense fallback={<div className="mt-8 h-56" />}>
+                <LoginForm />
+              </Suspense>
             ) : (
               <div className="mt-6">
                 <PanelGalat galat={{ jenis: "belum-terhubung" }} />
@@ -29,6 +33,12 @@ export default function HalamanMasuk() {
         </div>
         <p className="mt-5 text-center text-xs text-subtle">
           Belum punya akun? Minta admin menambahkan Anda di Supabase, menu Authentication.
+        </p>
+        <p className="mt-2 text-center text-xs text-subtle">
+          Baru mengenal Bright Match?{" "}
+          <Link href="/temukan" className="font-semibold text-brand-blue-strong underline-offset-2 hover:underline">
+            Temukan peluang tanpa akun
+          </Link>
         </p>
       </div>
     </main>

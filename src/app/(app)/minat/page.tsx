@@ -8,7 +8,8 @@ import { JudulHalaman, Rangka } from "@/components/ui";
 import { getMinat } from "@/lib/data-jelajah";
 import { getProfilSaya } from "@/lib/data-validasi";
 import { alamat, luas, n, satu, tanggal } from "@/lib/format";
-import { STATUS_MINAT } from "@/lib/jelajah";
+import { namaJenisUsaha } from "@/lib/istilah";
+import { STATUS_MINAT, SUMBER_MINAT } from "@/lib/jelajah";
 import { bolehUbah } from "@/lib/validasi";
 
 export const metadata: Metadata = { title: "Minat lokasi" };
@@ -21,14 +22,15 @@ const SARING = [
   { nilai: "ditutup", nama: "Ditutup" },
 ] as const;
 
-// Pola halaman: Inbox. Minat tenant dari penjelajah lokasi, yang terbaru di atas, untuk ditindaklanjuti tim NFR.
+// Pola halaman: Inbox. Minat dari penjelajah lokasi, rekomendasi Temukan peluang, formulir Bright Partner, dan
+// pengelola SPBU, yang terbaru di atas, untuk ditindaklanjuti tim NFR.
 export default function MinatHalaman({ searchParams }: Props) {
   return (
     <>
       <JudulHalaman
         label="Portal tenant"
         judul="Minat lokasi"
-        keterangan="Ruang yang diminati tenant dari penjelajah lokasinya. Minat tidak mengikat dan belum menjadi peluang; tindak lanjuti dengan menghubungi tenant, lalu buat peluangnya dari kartu lahan."
+        keterangan="Ruang yang diminati tenant, calon tenant, atau pengelola SPBU. Minat tidak mengikat dan belum menjadi peluang; tindak lanjuti dengan menghubungi peminatnya, lalu buat peluangnya dari kartu lahan atau halaman calon tenant."
       />
       <Suspense fallback={<Rangka baris={5} />}>
         <Isi searchParams={searchParams} />
@@ -68,8 +70,8 @@ async function Isi({ searchParams }: Pick<Props, "searchParams">) {
             {status === "baru" ? "Belum ada minat baru" : status === "ditindaklanjuti" ? "Tidak ada minat yang sedang ditindaklanjuti" : "Belum ada minat yang ditutup"}
           </h2>
           <p className="mt-2">
-            Minat masuk setelah admin NFR membuka penjelajah lokasi untuk satu organisasi tenant di halaman Organisasi dan anggota, dan di wilayah itu sudah ada
-            ruang yang terverifikasi.
+            Minat masuk dari empat arah: tenant yang penjelajah lokasinya dibuka admin NFR, tenant yang menyatakan minat dari rekomendasinya, calon tenant yang
+            menandai lokasi lalu mendaftar sebagai Bright Partner, dan pengelola SPBU yang ingin menghadirkan satu jenis usaha.
           </p>
           <Link href="/organisasi" className="mt-4 inline-flex min-h-11 items-center rounded-lg border border-line bg-white px-4 text-sm font-semibold text-ink hover:border-subtle">
             Buka Organisasi dan anggota
@@ -86,12 +88,29 @@ async function Isi({ searchParams }: Pick<Props, "searchParams">) {
                   {m.demo && <Lencana warna="kuning">Organisasi uji</Lencana>}
                   <Lencana warna={STATUS_MINAT[m.status].warna}>{STATUS_MINAT[m.status].nama}</Lencana>
                 </p>
+                <p className="mt-0.5 text-xs font-semibold text-subtle">{SUMBER_MINAT[m.sumber] ?? m.sumber}</p>
                 <p className="mt-1 text-sm leading-relaxed text-muted">
-                  Meminati ruang <strong className="text-ink">{m.lahan_kode}</strong>
+                  {m.segmen ? (
+                    <>
+                      Ingin menghadirkan <strong className="text-ink">{namaJenisUsaha(m.segmen).toLowerCase()}</strong> di ruang{" "}
+                    </>
+                  ) : (
+                    "Meminati ruang "
+                  )}
+                  <strong className="text-ink">{m.lahan_kode}</strong>
                   {m.luas_m2 != null ? ` (${luas(m.luas_m2)})` : ""} di SPBU {m.spbu_nomor}
-                  {m.kota ? `, ${m.kota}` : ""}. Dikirim {tanggal(m.dibuat)} oleh {m.dibuat_oleh ?? "–"}.
+                  {m.kota ? `, ${m.kota}` : ""}. Dikirim {tanggal(m.dibuat)} oleh {m.dibuat_oleh === "publik" ? "pendaftar formulir" : (m.dibuat_oleh ?? "–")}.
                 </p>
-                {m.catatan && <p className="mt-2 text-sm leading-relaxed text-ink">Catatan tenant: {m.catatan}</p>}
+                {m.catatan && <p className="mt-2 text-sm leading-relaxed text-ink">Catatan peminat: {m.catatan}</p>}
+                {m.potret && (m.potret.skor != null || m.potret.preferensi != null) && (
+                  <p className="angka mt-2 text-sm leading-relaxed text-muted">
+                    Rekomendasi yang dilihat peminat saat itu:{" "}
+                    {[m.potret.skor != null ? `kecocokan ${m.potret.skor}` : null, m.potret.preferensi != null ? `kesesuaian preferensi ${m.potret.preferensi}` : null]
+                      .filter(Boolean)
+                      .join(", ")}
+                    . Ini keterangan dari layar peminat, bukan skor resmi; skor resmi dihitung saat peluang dibuat.
+                  </p>
+                )}
                 {m.ditangani && (
                   <p className="mt-2 text-sm leading-relaxed text-muted">
                     {m.status === "ditutup" ? "Ditutup" : "Ditandai ditindaklanjuti"} {tanggal(m.ditangani)} oleh {m.ditangani_oleh ?? "–"}
@@ -102,6 +121,11 @@ async function Isi({ searchParams }: Pick<Props, "searchParams">) {
                   <Link href={`/kecocokan/lahan/${m.lahan_id}`} className={`${tautan} inline-flex min-h-11 items-center`}>
                     Buka kartu lahan
                   </Link>
+                  {m.calon_id && (
+                    <Link href={`/pipeline/calon/${m.calon_id}`} className={`${tautan} inline-flex min-h-11 items-center`}>
+                      Buka calon tenant
+                    </Link>
+                  )}
                   {m.peluang_id && (
                     <Link href={`/pipeline/${m.peluang_id}`} className={`${tautan} inline-flex min-h-11 items-center`}>
                       Buka peluangnya
